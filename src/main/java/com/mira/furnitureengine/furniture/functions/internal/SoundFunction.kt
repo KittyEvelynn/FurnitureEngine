@@ -1,32 +1,21 @@
-package com.mira.furnitureengine.furniture.functions.internal;
+package com.mira.furnitureengine.furniture.functions.internal
 
-import com.mira.furnitureengine.furniture.functions.Function;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
+import com.mira.furnitureengine.furniture.functions.Function
+import org.bukkit.Location
 
-import java.util.HashMap;
+class SoundFunction : Function {
+    override val type: String
+        get() = "SOUND"
 
-public class SoundFunction implements Function {
-    @Override
-    public String getType() {
-        return "SOUND";
-    }
-
-    @Override
-    public void execute(HashMap<String, Object> args) {
-        Player player = (Player) args.get("player");
-        Location location = (Location) args.get("location");
-
-        if(!args.containsKey("sound")) throw new IllegalArgumentException("Missing argument: sound");
-
-        String sound = (String) args.get("sound");
-
-
-        float volume = args.get("volume") == null ? 1 : ((Double) args.get("volume")).floatValue();
-        float pitch = args.get("pitch") == null ? 1 : ((Double) args.get("pitch")).floatValue();
-
+    override fun execute(args: HashMap<String, Any?>) {
+        val location = args["location"] as Location?
+        require(args.containsKey("sound")) { "Missing argument: sound" }
+        val sound = args["sound"] as String?
+        val volume: Float = if (args["volume"] == null) 1f else (args["volume"] as Double?)!!.toFloat()
+        val pitch: Float = if (args["pitch"] == null) 1f else (args["pitch"] as Double?)!!.toFloat()
         try {
-            location.getWorld().playSound(location, sound, volume, pitch);
-        } catch (Exception ignored) {}
+            location!!.world!!.playSound(location, sound!!, volume, pitch)
+        } catch (ignored: Exception) {
+        }
     }
 }

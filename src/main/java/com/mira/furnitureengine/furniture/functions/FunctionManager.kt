@@ -1,56 +1,59 @@
-package com.mira.furnitureengine.furniture.functions;
+package com.mira.furnitureengine.furniture.functions
 
+import com.mira.furnitureengine.FurnitureEngine
+import com.mira.furnitureengine.furniture.core.Furniture
+import com.mira.furnitureengine.furniture.functions.internal.CommandFunction
+import com.mira.furnitureengine.furniture.functions.internal.SitFunction
+import com.mira.furnitureengine.furniture.functions.internal.SoundFunction
+import com.mira.furnitureengine.furniture.functions.internal.SwingFunction
+import com.mira.furnitureengine.furniture.functions.internal.fmanip.ReplaceFunction
+import org.bukkit.*
+import org.bukkit.entity.Player
 
-import com.mira.furnitureengine.FurnitureEngine;
-import com.mira.furnitureengine.furniture.core.Furniture;
-import com.mira.furnitureengine.furniture.functions.internal.*;
-import com.mira.furnitureengine.furniture.functions.internal.fmanip.ReplaceFunction;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
+class FunctionManager private constructor() {
+    var functions = HashMap<String?, Function>()
 
-import java.util.HashMap;
-
-public class FunctionManager {
-    private static FunctionManager instance;
-
-    HashMap<String, Function> functions = new HashMap<>();
-
-    private FunctionManager() {
-        register(new CommandFunction());
-        register(new SoundFunction());
-        register(new SitFunction());
-        register(new SwingFunction());
-        register(new ReplaceFunction());
+    init {
+        register(CommandFunction())
+        register(SoundFunction())
+        register(SitFunction())
+        register(SwingFunction())
+        register(ReplaceFunction())
     }
 
-    public static FunctionManager getInstance() {
-        if(instance == null) {
-            instance = new FunctionManager();
-        }
-        return instance;
+    fun register(function: Function) {
+        functions[function.type] = function
+        FurnitureEngine.instance!!.logger.info("Registered function: " + function.type)
     }
 
-    public void register(Function function) {
-        functions.put(function.getType(), function);
-
-        FurnitureEngine.getInstance().getLogger().info("Registered function: " + function.getType());
-    }
-
-    public void call(String type, HashMap<String, Object> args, Player player, Furniture furniture, Location interactLocation, Location originLocation) {
-        HashMap<String, Object> argsCopy = new HashMap<>(args);
-
-        argsCopy.put("player", player);
-
-        argsCopy.put("furniture", furniture);
-
-        argsCopy.put("location", interactLocation);
-
-        argsCopy.put("origin", originLocation);
-
+    fun call(
+        type: String?,
+        args: HashMap<String, Any?>?,
+        player: Player?,
+        furniture: Furniture?,
+        interactLocation: Location?,
+        originLocation: Location?
+    ) {
+        val argsCopy = HashMap(args)
+        argsCopy["player"] = player
+        argsCopy["furniture"] = furniture
+        argsCopy["location"] = interactLocation
+        argsCopy["origin"] = originLocation
         try {
-            functions.get(type).execute(argsCopy);
-        } catch (IllegalArgumentException e) {
-            FurnitureEngine.getInstance().getLogger().warning("Failed to execute function: " + e.getMessage());
+            functions[type]!!.execute(argsCopy)
+        } catch (e: IllegalArgumentException) {
+            FurnitureEngine.instance!!.logger.warning("Failed to execute function: " + e.message)
         }
+    }
+
+    companion object {
+        var instance: FunctionManager? = null
+            get() {
+                if (field == null) {
+                    field = FunctionManager()
+                }
+                return field
+            }
+            private set
     }
 }

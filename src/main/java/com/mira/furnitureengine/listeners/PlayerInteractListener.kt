@@ -1,138 +1,132 @@
-package com.mira.furnitureengine.listeners;
+package com.mira.furnitureengine.listeners
 
-import com.mira.furnitureengine.furniture.FurnitureManager;
-import com.mira.furnitureengine.furniture.core.Furniture;
-import com.mira.furnitureengine.furniture.functions.FunctionType;
-import com.mira.furnitureengine.utils.Utils;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.EntityShootBowEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
+import com.mira.furnitureengine.furniture.FurnitureManager
+import com.mira.furnitureengine.furniture.core.Furniture
+import com.mira.furnitureengine.furniture.functions.FunctionType
+import com.mira.furnitureengine.utils.Utils
+import org.bukkit.GameMode
+import org.bukkit.Material
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.block.Action
+import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.entity.EntityShootBowEvent
+import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.inventory.EquipmentSlot
 
-public class PlayerInteractListener implements Listener {
+class PlayerInteractListener : Listener {
     @EventHandler(ignoreCancelled = true)
-    public void onPlayerInteract(PlayerInteractEvent event) {
+    fun onPlayerInteract(event: PlayerInteractEvent) {
         // Ignore on offhand
-        if (event.getHand() == EquipmentSlot.OFF_HAND) return;
-        Player player = event.getPlayer();
+        if (event.hand == EquipmentSlot.OFF_HAND) return
+        val player = event.player
 
         // 1. Placing
-        if(event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+        if (event.action == Action.RIGHT_CLICK_BLOCK) {
             // Ignore if it interacts with a block (eg. opening a chest, crafting table, door, etc.)
-            if(!player.isSneaking()) {
+            if (!player.isSneaking) {
                 // Check if the block is a furniture block
-                Furniture furniture = FurnitureManager.getInstance().isFurniture(event.getClickedBlock().getLocation());
-
-                if(furniture != null) {
-                    if(furniture.callFunction(
+                val furniture: Furniture? =
+                    FurnitureManager.instance!!.isFurniture(event.clickedBlock!!.location)
+                if (furniture != null) {
+                    if (furniture.callFunction(
                             FunctionType.RIGHT_CLICK,
-                            event.getClickedBlock().getLocation(),
+                            event.clickedBlock!!.location,
                             player,
-                            Utils.getOriginLocation(event.getClickedBlock().getLocation(), furniture)
-                    )) return;
+                            Utils.getOriginLocation(event.clickedBlock!!.location, furniture)
+                        )
+                    ) return
                 }
-
-                if(Utils.isInteractable(event.getClickedBlock())) return;
+                if (Utils.isInteractable(event.clickedBlock)) return
             } else {
-                Furniture furniture = FurnitureManager.getInstance().isFurniture(event.getClickedBlock().getLocation());
-
-                if(furniture != null) {
-                    furniture.callFunction(
-                            FunctionType.SHIFT_RIGHT_CLICK,
-                            event.getClickedBlock().getLocation(),
-                            player,
-                            Utils.getOriginLocation(event.getClickedBlock().getLocation(), furniture)
-                    );
-                }
+                val furniture: Furniture? = FurnitureManager.instance!!.isFurniture(
+                    event.clickedBlock!!.location
+                )
+                furniture?.callFunction(
+                    FunctionType.SHIFT_RIGHT_CLICK,
+                    event.clickedBlock!!.location,
+                    player,
+                    Utils.getOriginLocation(event.clickedBlock!!.location, furniture)
+                )
             }
 
             // Check if the item in the player's hand is a furniture item
-            EquipmentSlot hand = EquipmentSlot.HAND;
-            ItemStack item = player.getInventory().getItemInMainHand();
-            if (item.getType() == Material.AIR) {
-                item = player.getInventory().getItemInOffHand();
-                hand = EquipmentSlot.OFF_HAND;
+            var hand = EquipmentSlot.HAND
+            var item = player.inventory.itemInMainHand
+            if (item.type == Material.AIR) {
+                item = player.inventory.itemInOffHand
+                hand = EquipmentSlot.OFF_HAND
             }
-            if (item.getType() == Material.AIR) return;
-
-            if(player.getGameMode() == GameMode.ADVENTURE) return;
+            if (item.type == Material.AIR) return
+            if (player.gameMode == GameMode.ADVENTURE) return
 
             // Check if the item is a furniture item
-            if (item.hasItemMeta() && item.getItemMeta().hasCustomModelData()) {
-                for (Furniture  furniture : FurnitureManager.getInstance().getFurniture()) {
-                    if (Utils.itemsMatch(item, furniture.getGeneratedItem())) {
-                        furniture.place(player, hand, Utils.calculatePlacingLocation(event.getClickedBlock(), event.getBlockFace()));
-                        return;
+            if (item.hasItemMeta() && item.itemMeta!!.hasCustomModelData()) {
+                for (furniture in FurnitureManager.instance!!.getFurniture()) {
+                    if (Utils.itemsMatch(item, furniture.generatedItem)) {
+                        furniture.place(
+                            player,
+                            hand,
+                            Utils.calculatePlacingLocation(event.clickedBlock, event.blockFace)
+                        )
+                        return
                     }
                 }
             }
         }
 
         // 2. Breaking
-        if(event.getAction() == Action.LEFT_CLICK_BLOCK) {
-
-            Furniture furniture = FurnitureManager.getInstance().isFurniture(event.getClickedBlock().getLocation());
-
-            if(furniture != null) {
-                if(player.isSneaking()) {
+        if (event.action == Action.LEFT_CLICK_BLOCK) {
+            val furniture: Furniture? =
+                FurnitureManager.instance!!.isFurniture(event.clickedBlock!!.location)
+            if (furniture != null) {
+                if (player.isSneaking) {
                     furniture.callFunction(
-                            FunctionType.SHIFT_LEFT_CLICK,
-                            event.getClickedBlock().getLocation(),
-                            player,
-                            Utils.getOriginLocation(event.getClickedBlock().getLocation(), furniture)
-                    );
+                        FunctionType.SHIFT_LEFT_CLICK,
+                        event.clickedBlock!!.location,
+                        player,
+                        Utils.getOriginLocation(event.clickedBlock!!.location, furniture)
+                    )
                 } else {
                     furniture.callFunction(
-                            FunctionType.LEFT_CLICK,
-                            event.getClickedBlock().getLocation(),
-                            player,
-                            Utils.getOriginLocation(event.getClickedBlock().getLocation(), furniture)
-                    );
+                        FunctionType.LEFT_CLICK,
+                        event.clickedBlock!!.location,
+                        player,
+                        Utils.getOriginLocation(event.clickedBlock!!.location, furniture)
+                    )
                 }
-
-                Location origin = Utils.getOriginLocation(event.getClickedBlock().getLocation(), furniture);
-
-                if(origin != null) {
-                    furniture.breakFurniture(player, origin);
+                val origin = Utils.getOriginLocation(
+                    event.clickedBlock!!.location, furniture
+                )
+                if (origin != null) {
+                    furniture.breakFurniture(player, origin)
                 }
             }
         }
     }
 
     @EventHandler(ignoreCancelled = true)
-    public void onEntityShoot(EntityShootBowEvent event) {
-        for (Furniture furniture : FurnitureManager.getInstance().getFurniture()) {
-            if(Utils.itemsMatch(event.getConsumable(), furniture.getGeneratedItem())) {
-                event.setCancelled(true);
-                return;
+    fun onEntityShoot(event: EntityShootBowEvent) {
+        for (furniture in FurnitureManager.instance!!.getFurniture()) {
+            if (Utils.itemsMatch(event.consumable, furniture.generatedItem)) {
+                event.isCancelled = true
+                return
             }
         }
     }
 
     @EventHandler(ignoreCancelled = true)
-    public void onBlockPlace(BlockPlaceEvent event) {
+    fun onBlockPlace(event: BlockPlaceEvent) {
         // Scenario - Block in off hand, furniture in main hand
         // In this case cancel the event and place the furniture
-        if(event.getHand() == EquipmentSlot.OFF_HAND) {
-            ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
-
-            if(item.getType().isAir()) return;
-
-            if (item.hasItemMeta() && item.getItemMeta().hasCustomModelData()) {
-                for (Furniture furniture : FurnitureManager.getInstance().getFurniture()) {
-                    if (Utils.itemsMatch(item, furniture.getGeneratedItem())) {
-                        event.setCancelled(true);
-                        return;
+        if (event.hand == EquipmentSlot.OFF_HAND) {
+            val item = event.player.inventory.itemInMainHand
+            if (item.type.isAir) return
+            if (item.hasItemMeta() && item.itemMeta!!.hasCustomModelData()) {
+                for (furniture in FurnitureManager.instance!!.getFurniture()) {
+                    if (Utils.itemsMatch(item, furniture.generatedItem)) {
+                        event.isCancelled = true
+                        return
                     }
                 }
             }

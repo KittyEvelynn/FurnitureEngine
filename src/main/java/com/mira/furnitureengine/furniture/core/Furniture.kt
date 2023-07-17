@@ -1,716 +1,627 @@
-package com.mira.furnitureengine.furniture.core;
+package com.mira.furnitureengine.furniture.core
 
-import com.mira.furnitureengine.FurnitureEngine;
-import com.mira.furnitureengine.events.FurnitureBreakEvent;
-import com.mira.furnitureengine.events.FurniturePlaceEvent;
-import com.mira.furnitureengine.furniture.FurnitureManager;
-import com.mira.furnitureengine.furniture.functions.FunctionManager;
-import com.mira.furnitureengine.furniture.functions.FunctionType;
-import com.mira.furnitureengine.utils.Utils;
-import org.bukkit.*;
-import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.ItemFrame;
-import org.bukkit.entity.Player;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockMultiPlaceEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.util.Vector;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import com.mira.furnitureengine.FurnitureEngine
+import com.mira.furnitureengine.events.FurnitureBreakEvent
+import com.mira.furnitureengine.events.FurniturePlaceEvent
+import com.mira.furnitureengine.furniture.FurnitureManager
+import com.mira.furnitureengine.furniture.functions.FunctionManager
+import com.mira.furnitureengine.furniture.functions.FunctionType
+import com.mira.furnitureengine.utils.FormatUtils
+import com.mira.furnitureengine.utils.Utils
+import org.bukkit.*
+import org.bukkit.block.BlockFace
+import org.bukkit.entity.ItemFrame
+import org.bukkit.entity.Player
+import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.inventory.EquipmentSlot
+import org.bukkit.inventory.ItemFlag
+import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.PotionMeta
+import org.bukkit.persistence.PersistentDataType
+import org.bukkit.plugin.java.JavaPlugin
+import org.bukkit.util.Vector
+import java.util.*
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+class Furniture(/* Basic Furniture Data */
+                val id: String
+) {
+    enum class RotSides {
+        FOUR_SIDED,
+        EIGHT_SIDED;
 
-import static com.mira.furnitureengine.utils.FormatUtils.format;
-
-public class Furniture {
-    public static FurnitureEngine plugin = FurnitureEngine.getInstance();
-
-    public enum RotSides {
-        FOUR_SIDED, EIGHT_SIDED ;
-
-        public static RotSides valueOf(int rotation) {
-            if(rotation == 4) return FOUR_SIDED;
-            else if(rotation == 8) return EIGHT_SIDED;
-            else return null;
+        companion object {
+            fun valueOf(rotation: Int): RotSides? {
+                return if (rotation == 4) FOUR_SIDED else if (rotation == 8) EIGHT_SIDED else null
+            }
         }
     }
+
     /* Generated itemstacks */
-    private ItemStack generatedItem;
-    private ItemStack generatedFrameItem;
-    private ItemStack generatedDropItem;
-
-    /* Basic Furniture Data */
-    private final String id;
-
-    private final Material material;
-
-    private final String displayName;
-    private final List<String> lore;
-    private final int modelData;
-
-    private final RotSides rotSides;
+    var generatedItem: ItemStack? = null
+        private set
+    var blockItem: ItemStack? = null
+        private set
+    private var generatedDropItem: ItemStack? = null
+    private val material: Material
+    var displayName: String? = null
+    var lore: List<String?>? = null
+    val modelData: Int
+    val rotation: RotSides?
 
     /* Advanced Furniture Data */
-    private final List<SubModel> subModels = new ArrayList<>();
+    val subModels: MutableList<SubModel> = ArrayList()
+    private val functions = HashMap<FunctionType, MutableList<HashMap<String, Any?>>>()
 
-    private final HashMap<FunctionType, List<HashMap<String, Object>>> functions = new HashMap<>();
     // I am aware that the thing above looks awful, but if you take a look at the code below, you'll see why I did it this way
-
-
-    public Furniture(String id) throws IllegalArgumentException {
-        this.id = id;
+    init {
 
         // Manually get all other values from config
-        String tempDisplayName = plugin.getConfig().getString("Furniture." + id + ".display");
-        if(tempDisplayName != null) {
-            displayName = format(tempDisplayName);
+        val tempDisplayName = plugin!!.config.getString("Furniture.$id.display")
+        displayName = if (tempDisplayName != null) {
+            FormatUtils.format(tempDisplayName)
         } else {
-            displayName = null;
+            null
         }
-
-        List<String> tempLore = plugin.getConfig().getStringList("Furniture." + id + ".lore");
-
-        if(!tempLore.isEmpty()) {
-            lore = format(tempLore);
+        val tempLore = plugin!!.config.getStringList("Furniture.$id.lore")
+        lore = if (!tempLore.isEmpty()) {
+            FormatUtils.format(tempLore)
         } else {
-            lore = null;
+            null
         }
-
-        material = Material.valueOf(plugin.getConfig().getString("Furniture." + id + ".item"));
-
-        modelData = plugin.getConfig().getInt("Furniture." + id + ".model_data");
+        material = Material.valueOf(plugin!!.config.getString("Furniture.$id.item")!!)
+        modelData = plugin!!.config.getInt("Furniture.$id.model_data")
         // If modelData is 0, throw an error
-        if(modelData == 0) {
-            plugin.getLogger().warning("Model data for furniture " + id + " is 0. This is not allowed.");
-
-            throw new IllegalArgumentException("Model data for furniture " + id + " is 0. This is not allowed.");
+        if (modelData == 0) {
+            plugin!!.logger.warning("Model data for furniture $id is 0. This is not allowed.")
+            throw IllegalArgumentException("Model data for furniture $id is 0. This is not allowed.")
         }
-
-        rotSides = RotSides.valueOf(plugin.getConfig().getInt("Furniture." + id + ".rotation"));
+        rotation = RotSides.valueOf(plugin!!.config.getInt("Furniture.$id.rotation"))
 
         // Get all submodels (object list)
         try {
-            for (Object obj : plugin.getConfig().getList("Furniture." + id + ".submodels", new ArrayList<>())) {
+            for (obj in plugin!!.config.getList("Furniture.$id.submodels", ArrayList<Any>())!!) {
                 // Example format: {offset={x=1, y=0, z=0}, model_data=2}
-                if (obj instanceof Map<?, ?> map) {
-                    Vector offset = map.get("offset") instanceof Map<?, ?> offsetMap ? new Vector(
-                            offsetMap.get("x") instanceof Number x ? x.intValue() : 0,
-                            offsetMap.get("y") instanceof Number y ? y.intValue() : 0,
-                            offsetMap.get("z") instanceof Number z ? z.intValue() : 0
-                    ) : null;
-
-                    int modelData = map.get("model_data") instanceof Number number ? number.intValue() : 0;
-
-                    if(offset == null || offset.lengthSquared() == 0) {
-                        throw new IllegalArgumentException("Offset for a submodel of furniture " + id + " is null or 0. This is not allowed.");
+                if (obj is Map<*, *>) {
+                    var offset: Vector? = null
+                    if (obj["offset"] is Map<*, *>) {
+                        val offsetMap = obj["offset"] as Map<*, *>
+                        offset = Vector(
+                            if (offsetMap["x"] is Number) offsetMap["x"] as Int else 0,
+                            if (offsetMap["y"] is Number) offsetMap["y"] as Int else 0,
+                            if (offsetMap["z"] is Number) offsetMap["z"] as Int else 0
+                        )
                     }
-                    if(modelData == 0) {
-                        throw new IllegalArgumentException("Model data for a submodel of furniture " + id + " is 0. This is not allowed.");
-                    }
-
-                    subModels.add(new SubModel(offset, modelData));
+                    val modelData = if (obj["model_data"] is Number) obj["model_data"] as Int else 0
+                    require(!(offset == null || offset.lengthSquared() == 0.0)) { "Offset for a submodel of furniture $id is null or 0. This is not allowed." }
+                    require(modelData != 0) { "Model data for a submodel of furniture $id is 0. This is not allowed." }
+                    subModels.add(SubModel(offset, modelData))
                 }
             }
-        } catch (Exception e) {
-            plugin.getLogger().warning("Failed to load submodels for furniture " + id + ". Error: " + e.getMessage());
-
-            throw new IllegalArgumentException("Failed to load submodels for furniture " + id + ". Error: " + e.getMessage());
+        } catch (e: Exception) {
+            plugin!!.logger.warning("Failed to load submodels for furniture " + id + ". Error: " + e.message)
+            throw IllegalArgumentException("Failed to load submodels for furniture " + id + ". Error: " + e.message)
         }
-
-        if(!subModels.isEmpty()) {
-            if(!Utils.onlyVertical(subModels)) {
-                if(rotSides == RotSides.EIGHT_SIDED) {
-                    throw new IllegalArgumentException("Furniture " + id + " has 8 sided rotation, but has horizontal submodels. This is not allowed.");
-                }
+        if (!subModels.isEmpty()) {
+            if (!Utils.onlyVertical(subModels)) {
+                require(rotation != RotSides.EIGHT_SIDED) { "Furniture $id has 8 sided rotation, but has horizontal submodels. This is not allowed." }
             }
         }
 
         // And now get all functions
         try {
-            for (FunctionType type : FunctionType.values()) {
-                for(Object obj : plugin.getConfig().getList("Furniture." + id + ".functions." + type.name().toUpperCase(), new ArrayList<>())) {
-                    if(obj instanceof Map<?, ?> map) {
+            for (type in FunctionType.entries) {
+                for (obj in plugin!!.config.getList(
+                    "Furniture." + id + ".functions." + type.name.uppercase(Locale.getDefault()),
+                    ArrayList<Any>()
+                )!!) {
+                    if (obj is Map<*, *>) {
                         // it contains a type ("type") and multiple arguments, which are stored in a map ("args")
-                        String functionType = map.get("type") instanceof String string ? string : null;
-
-                        if(functionType == null) {
-                            throw new IllegalArgumentException("Function type for furniture " + id + " is null. This is not allowed.");
+                        val functionType: String
+                        if (obj["type"] is String) {
+                            functionType = obj["type"] as String
+                        }
+                        else {
+                            throw NullPointerException("Function type for furniture $id is null. This is not allowed.")
                         }
 
-                        HashMap<String, Object> args = new HashMap<>();
-
-                        args.put("type", functionType); // Why not put it in the for below? well for error handling, of course
-
-                        for(Map.Entry<?, ?> entry : map.entrySet()) {
-                            if(entry.getKey().equals("type")) continue;
-
-                            args.put(entry.getKey().toString(), entry.getValue());
+                        val args = HashMap<String, Any?>()
+                        args["type"] =
+                            functionType // Why not put it in the for below? well for error handling, of course
+                        for ((key, value) in obj) {
+                            if (key == "type") continue
+                            args[key.toString()] = value
                         }
-
-                        if(!functions.containsKey(type)) {
-                            ArrayList<HashMap<String, Object>> list = new ArrayList<>();
-
-                            list.add(args);
-
-                            functions.put(type, list);
+                        if (!functions.containsKey(type)) {
+                            val list = ArrayList<HashMap<String, Any?>>()
+                            list.add(args)
+                            functions[type] = list
                         } else {
-                            functions.get(type).add(args);
+                            functions[type]!!.add(args)
                         }
                     }
                 }
             }
-        } catch (Exception e) {
-            plugin.getLogger().warning("Failed to load functions for furniture " + id + ". Error: " + e.getMessage());
-
-            throw new IllegalArgumentException("Failed to load functions for furniture " + id + ". Error: " + e.getMessage());
+        } catch (e: Exception) {
+            plugin!!.logger.warning("Failed to load functions for furniture " + id + ". Error: " + e.message)
+            throw IllegalArgumentException("Failed to load functions for furniture " + id + ". Error: " + e.message)
         }
-
-        init();
+        init()
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public List<String> getLore() {
-        return lore;
-    }
-
-    public int getModelData() {
-        return modelData;
-    }
-
-    public RotSides getRotation() {
-        return rotSides;
-    }
-
-    public List<SubModel> getSubModels() {
-        return subModels;
-    }
-
-    @Override
-    public String toString() {
+    override fun toString(): String {
         return "Furniture{" +
                 "id='" + id + '\'' +
                 ", modelData=" + modelData +
-                '}';
+                '}'
     }
 
-    public ItemStack getGeneratedItem() {
-        return generatedItem;
-    }
+    val dropItem: ItemStack
+        get() = generatedDropItem!!.clone()
 
-    public ItemStack getBlockItem() {
-        return generatedFrameItem;
-    }
-
-    public ItemStack getDropItem() {
-        return generatedDropItem.clone();
-    }
-
-    private void init() throws IllegalArgumentException {
+    @Throws(IllegalArgumentException::class)
+    private fun init() {
         // Generate itemstack
-        generatedItem = new ItemStack(material);
-        generatedItem.setAmount(1);
-
-        ItemMeta meta = generatedItem.getItemMeta();
-
-        if(meta == null) {
-            throw new IllegalArgumentException("Failed to generate item for furniture " + id + ". ItemMeta is null. (Material: " + material + ")");
+        generatedItem = ItemStack(material)
+        generatedItem!!.amount = 1
+        val meta = generatedItem!!.itemMeta
+            ?: throw IllegalArgumentException("Failed to generate item for furniture $id. ItemMeta is null. (Material: $material)")
+        if (displayName != null) {
+            meta.setDisplayName(displayName)
         }
-
-        if(displayName != null) {
-            meta.setDisplayName(displayName);
+        if (lore != null) {
+            meta.lore = lore
         }
-        if(lore != null) {
-            meta.setLore(lore);
-        }
-        meta.setCustomModelData(modelData);
+        meta.setCustomModelData(modelData)
 
         // If the item is tipped arrow, hide the potion effect
-        if(material == Material.TIPPED_ARROW)
-            meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
-
-        generatedItem.setItemMeta(meta);
-
+        if (material == Material.TIPPED_ARROW) meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS)
+        generatedItem!!.setItemMeta(meta)
 
 
         // Load overrides (drop-item, block-item)
-        if(plugin.getConfig().contains("Furniture." + id + ".overrides")) {
+        if (plugin!!.config.contains("Furniture.$id.overrides")) {
             // Drop item
-            if(plugin.getConfig().contains("Furniture." + id + ".overrides.drop-item")) {
+            if (plugin!!.config.contains("Furniture.$id.overrides.drop-item")) {
                 // Priority: other furniture > custom override > default
-                String dropItemId = plugin.getConfig().getString("Furniture." + id + ".overrides.drop-item.furniture");
-
-                if(dropItemId == null) {
+                val dropItemId = plugin!!.config.getString("Furniture.$id.overrides.drop-item.furniture")
+                if (dropItemId == null) {
 
                     // Get fields (item, amount, model_data, display, lore)
-                    Material dropItem = Material.getMaterial(plugin.getConfig().getString("Furniture." + id + ".overrides.drop-item.item", material.name()));
-                    int dropAmount = plugin.getConfig().getInt("Furniture." + id + ".overrides.drop-item.amount", 1);
-                    int dropModelData = plugin.getConfig().getInt("Furniture." + id + ".overrides.drop-item.model_data", modelData);
-                    String dropDisplayName = plugin.getConfig().getString("Furniture." + id + ".overrides.drop-item.display", displayName);
-                    List<String> dropLore = plugin.getConfig().getStringList("Furniture." + id + ".overrides.drop-item.lore");
-
-                    if (dropItem == null) {
-                        throw new IllegalArgumentException("Failed to generate drop item for furniture " + id + ". Material is null.");
-                    }
+                    val dropItem = Material.getMaterial(
+                        plugin!!.config.getString(
+                            "Furniture.$id.overrides.drop-item.item",
+                            material.name
+                        )!!
+                    )
+                    val dropAmount = plugin!!.config.getInt("Furniture.$id.overrides.drop-item.amount", 1)
+                    val dropModelData =
+                        plugin!!.config.getInt("Furniture.$id.overrides.drop-item.model_data", modelData)
+                    val dropDisplayName =
+                        plugin!!.config.getString("Furniture.$id.overrides.drop-item.display", displayName)
+                    val dropLore = plugin!!.config.getStringList("Furniture.$id.overrides.drop-item.lore")
+                    requireNotNull(dropItem) { "Failed to generate drop item for furniture $id. Material is null." }
 
                     // Generate item
-                    ItemStack drop = new ItemStack(dropItem);
-                    drop.setAmount(dropAmount);
-
-                    ItemMeta dropMeta = drop.getItemMeta();
-
-                    if (dropMeta == null) {
-                        throw new IllegalArgumentException("Failed to generate drop item for furniture " + id + ". ItemMeta is null. (Material: " + dropItem + ")");
-                    }
-
+                    val drop = ItemStack(dropItem)
+                    drop.amount = dropAmount
+                    val dropMeta = drop.itemMeta
+                        ?: throw IllegalArgumentException("Failed to generate drop item for furniture $id. ItemMeta is null. (Material: $dropItem)")
                     if (dropDisplayName != null) {
-                        dropMeta.setDisplayName(format(dropDisplayName));
+                        dropMeta.setDisplayName(FormatUtils.format(dropDisplayName))
                     }
-
                     if (!dropLore.isEmpty()) {
-                        dropMeta.setLore(format(dropLore));
+                        dropMeta.lore = FormatUtils.format(dropLore)
                     }
-
                     if (dropModelData != 0) {
-                        dropMeta.setCustomModelData(dropModelData);
+                        dropMeta.setCustomModelData(dropModelData)
                     }
-
-                    drop.setItemMeta(dropMeta);
+                    drop.setItemMeta(dropMeta)
 
                     // Now set it
-                    generatedDropItem = drop;
+                    generatedDropItem = drop
                 } else {
                     try {
-                        generatedDropItem = FurnitureManager.getInstance().getFurniture(dropItemId).getDropItem();
-                    } catch (Exception e) {
-                        plugin.getLogger().warning("Furniture with id " + dropItemId + " does not exist. Please load it before loading " + id + ".");
+                        generatedDropItem =
+                            FurnitureManager.instance!!.getFurniture(dropItemId)!!.dropItem
+                    } catch (e: Exception) {
+                        plugin!!.logger.warning("Furniture with id $dropItemId does not exist. Please load it before loading $id.")
                     }
                 }
             }
-            if(plugin.getConfig().contains("Furniture." + id + ".overrides.block-item")) {
+            if (plugin!!.config.contains("Furniture.$id.overrides.block-item")) {
                 // Get fields (item, model_data, display, lore)
-                Material blockItem = Material.getMaterial(plugin.getConfig().getString("Furniture." + id + ".overrides.block-item.item", material.name()));
-                int blockModelData = plugin.getConfig().getInt("Furniture." + id + ".overrides.block-item.model_data", modelData);
-                String blockDisplayName = plugin.getConfig().getString("Furniture." + id + ".overrides.block-item.display", displayName);
-                List<String> blockLore = plugin.getConfig().getStringList("Furniture." + id + ".overrides.block-item.lore");
-
-                if(blockItem == null) {
-                    throw new IllegalArgumentException("Failed to generate block item for furniture " + id + ". Material is null.");
-                }
+                val blockItem = Material.getMaterial(
+                    plugin!!.config.getString(
+                        "Furniture.$id.overrides.block-item.item",
+                        material.name
+                    )!!
+                )
+                val blockModelData = plugin!!.config.getInt("Furniture.$id.overrides.block-item.model_data", modelData)
+                val blockDisplayName =
+                    plugin!!.config.getString("Furniture.$id.overrides.block-item.display", displayName)
+                val blockLore = plugin!!.config.getStringList("Furniture.$id.overrides.block-item.lore")
+                requireNotNull(blockItem) { "Failed to generate block item for furniture $id. Material is null." }
 
                 // Generate item
-                ItemStack block = new ItemStack(blockItem);
-                block.setAmount(1);
-
-                ItemMeta blockMeta = block.getItemMeta();
-
-                if(blockMeta == null) {
-                    throw new IllegalArgumentException("Failed to generate block item for furniture " + id + ". ItemMeta is null. (Material: " + blockItem + ")");
+                val block = ItemStack(blockItem)
+                block.amount = 1
+                val blockMeta = block.itemMeta
+                    ?: throw IllegalArgumentException("Failed to generate block item for furniture $id. ItemMeta is null. (Material: $blockItem)")
+                if (blockDisplayName != null) {
+                    blockMeta.setDisplayName(FormatUtils.format(blockDisplayName))
                 }
-
-                if(blockDisplayName != null) {
-                    blockMeta.setDisplayName(format(blockDisplayName));
+                if (!blockLore.isEmpty()) {
+                    blockMeta.lore = FormatUtils.format(blockLore)
                 }
-
-                if(!blockLore.isEmpty()) {
-                    blockMeta.setLore(format(blockLore));
+                if (blockModelData != 0) {
+                    blockMeta.setCustomModelData(blockModelData)
                 }
-
-                if(blockModelData != 0) {
-                    blockMeta.setCustomModelData(blockModelData);
-                }
-
-                block.setItemMeta(blockMeta);
+                block.setItemMeta(blockMeta)
 
                 // Now set it
-                generatedFrameItem = block;
+                this.blockItem = block
             }
         }
 
         // if there is no drop item, use the generated item (and same for block item)
-        if(generatedDropItem == null) {
-            ItemStack drop = generatedItem.clone();
-            drop.setAmount(1);
-            generatedDropItem = drop;
+        if (generatedDropItem == null) {
+            val drop = generatedItem!!.clone()
+            drop.amount = 1
+            generatedDropItem = drop
         }
-        if(generatedFrameItem == null) {
-            generatedFrameItem = generatedItem;
+        if (blockItem == null) {
+            blockItem = generatedItem
         }
     }
 
-    public ItemStack generateSubModelItem(SubModel subModel) {
-        ItemStack item = generatedFrameItem.clone();
-
-        ItemMeta meta = item.getItemMeta();
-
-        assert meta != null;
-
-        meta.setCustomModelData(subModel.getCustomModelData());
-
-        item.setItemMeta(meta);
-
-        return item;
+    fun generateSubModelItem(subModel: SubModel?): ItemStack {
+        val item = blockItem!!.clone()
+        val meta = item.itemMeta!!
+        meta.setCustomModelData(subModel?.customModelData)
+        item.setItemMeta(meta)
+        return item
     }
 
-    public boolean place(@NotNull Player player, EquipmentSlot hand, @NotNull Location location) {
+    fun place(player: Player, hand: EquipmentSlot, location: Location): Boolean {
         // Go thru all submodels and check if there is space for them
-        Rotation rotation = Utils.getRotation(player, rotSides);
+        val rotation = Utils.getRotation(player, rotation)
 
         // Check if the item is a tipped arrow
-        boolean inheritColor; Color color;
-        if(generatedItem.getType() == Material.TIPPED_ARROW) {
-            ItemStack itemInHand = player.getInventory().getItemInMainHand();
-            if(itemInHand.getType() != Material.TIPPED_ARROW) {
-                itemInHand = player.getInventory().getItemInOffHand();
+        val inheritColor: Boolean
+        val color: Color?
+        if (generatedItem!!.type == Material.TIPPED_ARROW) {
+            var itemInHand = player.inventory.itemInMainHand
+            if (itemInHand.type != Material.TIPPED_ARROW) {
+                itemInHand = player.inventory.itemInOffHand
             }
-            PotionMeta potionMeta = (PotionMeta) itemInHand.getItemMeta();
-            if(potionMeta != null) {
-                if(potionMeta.hasColor()) {
-                    inheritColor = true;
-                    color = potionMeta.getColor();
+            val potionMeta = itemInHand.itemMeta as PotionMeta?
+            if (potionMeta != null) {
+                if (potionMeta.hasColor()) {
+                    inheritColor = true
+                    color = potionMeta.color
                 } else {
-                    color = null;
-                    inheritColor = false;
+                    color = null
+                    inheritColor = false
                 }
             } else {
-                color = null;
-                inheritColor = false;
+                color = null
+                inheritColor = false
             }
         } else {
-            color = null;
-            inheritColor = false;
+            color = null
+            inheritColor = false
         }
-
-        for(SubModel subModel : subModels) {
-            Location subModelLocation = Utils.getRelativeLocation(location, subModel.getOffset(), rotation);
-
-            if(Utils.isSolid(subModelLocation.getBlock()) || Utils.entityObstructing(subModelLocation)) {
-                return false;
+        for (subModel in subModels) {
+            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
+            if (Utils.isSolid(subModelLocation.block) || Utils.entityObstructing(subModelLocation)) {
+                return false
             }
         }
-
-        if(Utils.isSolid(location.getBlock()) || Utils.entityObstructing(location)) {
-            return false;
+        if (Utils.isSolid(location.block) || Utils.entityObstructing(location)) {
+            return false
         }
-
-        BlockPlaceEvent blockPlaceEvent = new BlockPlaceEvent(location.getBlock(), location.getBlock().getState(), location.getBlock().getRelative(BlockFace.UP), generatedFrameItem, player, true, hand);
-        plugin.getServer().getPluginManager().callEvent(blockPlaceEvent);
-
-        if(blockPlaceEvent.isCancelled()) {
-            return false;
+        val blockPlaceEvent = BlockPlaceEvent(
+            location.block,
+            location.block.state,
+            location.block.getRelative(BlockFace.UP),
+            blockItem!!,
+            player,
+            true,
+            hand
+        )
+        plugin!!.server.pluginManager.callEvent(blockPlaceEvent)
+        if (blockPlaceEvent.isCancelled) {
+            return false
         }
-
-        FurniturePlaceEvent event = new FurniturePlaceEvent(this, player, location);
-        plugin.getServer().getPluginManager().callEvent(event);
-
-        if(event.isCancelled()) {
-            return false;
+        val event = FurniturePlaceEvent(this, player, location)
+        plugin!!.server.pluginManager.callEvent(event)
+        if (event.isCancelled) {
+            return false
         }
 
         // Set a barrier block at the location
-        location.getBlock().setType(Material.AIR);
+        location.block.type = Material.AIR
         // Spawn an item frame at the location
-        ItemFrame itemFrame = location.getWorld().spawn(location, ItemFrame.class, (frame) -> {
+        val itemFrame = location.world!!.spawn<ItemFrame>(location, ItemFrame::class.java) { frame: ItemFrame ->
             // Set the item frame's item to the generated item
-            if(!inheritColor) {
-                frame.setItem(generatedFrameItem);
+            if (!inheritColor) {
+                frame.setItem(blockItem)
             } else {
-                ItemStack item = generatedFrameItem.clone();
-                PotionMeta potionMeta = (PotionMeta) item.getItemMeta();
-                if(potionMeta != null) {
-                    potionMeta.setColor(color);
-                    item.setItemMeta(potionMeta);
+                val item = blockItem!!.clone()
+                val potionMeta = item.itemMeta as PotionMeta?
+                if (potionMeta != null) {
+                    potionMeta.color = color
+                    item.setItemMeta(potionMeta)
                 }
-                frame.setItem(item);
+                frame.setItem(item)
             }
-
-
-            frame.setSilent(true);
-            frame.setVisible(false);
-            frame.setFixed(true);
-            frame.setInvulnerable(true);
-
-            frame.setRotation(rotation);
-
-            frame.setFacingDirection(BlockFace.UP);
-
-            frame.getPersistentDataContainer().set(new NamespacedKey(FurnitureEngine.getPlugin(FurnitureEngine.class), "format"), PersistentDataType.INTEGER, Utils.getFurnitureFormatVersion());
-        });
-
-        location.getBlock().setType(Material.BARRIER);
+            frame.isSilent = true
+            frame.isVisible = false
+            frame.isFixed = true
+            frame.isInvulnerable = true
+            frame.rotation = rotation
+            frame.setFacingDirection(BlockFace.UP)
+            frame.persistentDataContainer.set(
+                NamespacedKey(
+                    JavaPlugin.getPlugin(
+                        FurnitureEngine::class.java
+                    ), "format"
+                ), PersistentDataType.INTEGER, Utils.furnitureFormatVersion
+            )
+        }
+        location.block.type = Material.BARRIER
 
         // Now go thru all submodels and place them
-        for(SubModel subModel : subModels) {
-            Location subModelLocation = Utils.getRelativeLocation(location, subModel.getOffset(), rotation);
-
-            subModelLocation.getBlock().setType(Material.AIR);
-            ItemFrame subModelItemFrame = subModelLocation.getWorld().spawn(subModelLocation, ItemFrame.class, (frame) -> {
-                if(!inheritColor)
-                    frame.setItem(generateSubModelItem(subModel));
-                else {
-                    ItemStack item = generateSubModelItem(subModel).clone();
-                    PotionMeta potionMeta = (PotionMeta) item.getItemMeta();
-                    if(potionMeta != null) {
-                        potionMeta.setColor(color);
-                        item.setItemMeta(potionMeta);
+        for (subModel in subModels) {
+            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
+            subModelLocation.block.type = Material.AIR
+            val subModelItemFrame = subModelLocation.world!!
+                .spawn<ItemFrame>(subModelLocation, ItemFrame::class.java) { frame: ItemFrame ->
+                    if (!inheritColor) frame.setItem(generateSubModelItem(subModel)) else {
+                        val item = generateSubModelItem(subModel).clone()
+                        val potionMeta = item.itemMeta as PotionMeta?
+                        if (potionMeta != null) {
+                            potionMeta.color = color
+                            item.setItemMeta(potionMeta)
+                        }
+                        frame.setItem(item)
                     }
-                    frame.setItem(item);
+                    frame.isSilent = true
+                    frame.isVisible = false
+                    frame.isFixed = true
+                    frame.isInvulnerable = true
+                    frame.rotation = rotation
+                    frame.setFacingDirection(BlockFace.UP)
+                    frame.persistentDataContainer.set(
+                        NamespacedKey(
+                            JavaPlugin.getPlugin(
+                                FurnitureEngine::class.java
+                            ), "format"
+                        ), PersistentDataType.INTEGER, Utils.furnitureFormatVersion
+                    )
                 }
-
-                frame.setSilent(true);
-                frame.setVisible(false);
-                frame.setFixed(true);
-                frame.setInvulnerable(true);
-
-                frame.setRotation(rotation);
-
-                frame.setFacingDirection(BlockFace.UP);
-
-                frame.getPersistentDataContainer().set(new NamespacedKey(FurnitureEngine.getPlugin(FurnitureEngine.class), "format"), PersistentDataType.INTEGER, Utils.getFurnitureFormatVersion());
-            });
-
-            subModelLocation.getBlock().setType(Material.BARRIER);
+            subModelLocation.block.type = Material.BARRIER
         }
 
         // play placing animation & remove item from hand (if not in creative)
-        if(hand == EquipmentSlot.HAND) {
-            player.swingMainHand();
-
-            if(!player.getGameMode().equals(GameMode.CREATIVE)) {
-                player.getInventory().getItemInMainHand().setAmount(player.getInventory().getItemInMainHand().getAmount() - 1);
+        if (hand == EquipmentSlot.HAND) {
+            player.swingMainHand()
+            if (player.gameMode != GameMode.CREATIVE) {
+                player.inventory.itemInMainHand.amount = player.inventory.itemInMainHand.amount - 1
             }
         } else {
-            player.swingOffHand();
-
-            if(!player.getGameMode().equals(GameMode.CREATIVE)) {
-                player.getInventory().getItemInOffHand().setAmount(player.getInventory().getItemInOffHand().getAmount() - 1);
+            player.swingOffHand()
+            if (player.gameMode != GameMode.CREATIVE) {
+                player.inventory.itemInOffHand.amount = player.inventory.itemInOffHand.amount - 1
             }
         }
-
-        this.callFunction(
-                FunctionType.PLACE,
-                location,
-                player,
-                location
-        );
-
-        return true;
+        callFunction(
+            FunctionType.PLACE,
+            location,
+            player,
+            location
+        )
+        return true
     }
 
-    public boolean spawn(@NotNull Location location, @NotNull Rotation rotation, @Nullable Color color) {
-        boolean inheritColor;
-        inheritColor = generatedItem.getType() == Material.TIPPED_ARROW && color != null;
-
-        for(SubModel subModel : subModels) {
-            Location subModelLocation = Utils.getRelativeLocation(location, subModel.getOffset(), rotation);
-
-            if(Utils.isSolid(subModelLocation.getBlock())) {
-                return false;
+    fun spawn(location: Location, rotation: Rotation, color: Color?): Boolean {
+        val inheritColor: Boolean
+        inheritColor = generatedItem!!.type == Material.TIPPED_ARROW && color != null
+        for (subModel in subModels) {
+            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
+            if (Utils.isSolid(subModelLocation.block)) {
+                return false
             }
         }
-
-        if(Utils.isSolid(location.getBlock())) {
-            return false;
+        if (Utils.isSolid(location.block)) {
+            return false
         }
-
-        FurniturePlaceEvent event = new FurniturePlaceEvent(this, null, location);
-        plugin.getServer().getPluginManager().callEvent(event);
-
-        if(event.isCancelled()) {
-            return false;
+        val event = FurniturePlaceEvent(this, null, location)
+        plugin!!.server.pluginManager.callEvent(event)
+        if (event.isCancelled) {
+            return false
         }
 
         // Set a barrier block at the location
-        location.getBlock().setType(Material.AIR);
+        location.block.type = Material.AIR
         // Spawn an item frame at the location
-        ItemFrame itemFrame = location.getWorld().spawn(location, ItemFrame.class, (frame) -> {
+        val itemFrame = location.world!!.spawn<ItemFrame>(location, ItemFrame::class.java) { frame: ItemFrame ->
             // Set the item frame's item to the generated item
-            if(!inheritColor) {
-                frame.setItem(generatedFrameItem);
+            if (!inheritColor) {
+                frame.setItem(blockItem)
             } else {
-                ItemStack item = generatedFrameItem.clone();
-                PotionMeta potionMeta = (PotionMeta) item.getItemMeta();
-                if(potionMeta != null) {
-                    potionMeta.setColor(color);
-                    item.setItemMeta(potionMeta);
+                val item = blockItem!!.clone()
+                val potionMeta = item.itemMeta as PotionMeta?
+                if (potionMeta != null) {
+                    potionMeta.color = color
+                    item.setItemMeta(potionMeta)
                 }
-                frame.setItem(item);
+                frame.setItem(item)
             }
-
-
-            frame.setSilent(true);
-            frame.setVisible(false);
-            frame.setFixed(true);
-            frame.setInvulnerable(true);
-
-            frame.setRotation(rotation);
-
-            frame.setFacingDirection(BlockFace.UP);
-
-            frame.getPersistentDataContainer().set(new NamespacedKey(FurnitureEngine.getPlugin(FurnitureEngine.class), "format"), PersistentDataType.INTEGER, Utils.getFurnitureFormatVersion());
-        });
-
-        location.getBlock().setType(Material.BARRIER);
+            frame.isSilent = true
+            frame.isVisible = false
+            frame.isFixed = true
+            frame.isInvulnerable = true
+            frame.rotation = rotation
+            frame.setFacingDirection(BlockFace.UP)
+            frame.persistentDataContainer.set(
+                NamespacedKey(
+                    JavaPlugin.getPlugin(
+                        FurnitureEngine::class.java
+                    ), "format"
+                ), PersistentDataType.INTEGER, Utils.furnitureFormatVersion
+            )
+        }
+        location.block.type = Material.BARRIER
 
         // Now go thru all submodels and place them
-        for(SubModel subModel : subModels) {
-            Location subModelLocation = Utils.getRelativeLocation(location, subModel.getOffset(), rotation);
-
-            subModelLocation.getBlock().setType(Material.AIR);
-            ItemFrame subModelItemFrame = subModelLocation.getWorld().spawn(subModelLocation, ItemFrame.class, (frame) -> {
-                if(!inheritColor)
-                    frame.setItem(generateSubModelItem(subModel));
-                else {
-                    ItemStack item = generateSubModelItem(subModel).clone();
-                    PotionMeta potionMeta = (PotionMeta) item.getItemMeta();
-                    if(potionMeta != null) {
-                        potionMeta.setColor(color);
-                        item.setItemMeta(potionMeta);
+        for (subModel in subModels) {
+            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
+            subModelLocation.block.type = Material.AIR
+            val subModelItemFrame = subModelLocation.world!!
+                .spawn<ItemFrame>(subModelLocation, ItemFrame::class.java) { frame: ItemFrame ->
+                    if (!inheritColor) frame.setItem(generateSubModelItem(subModel)) else {
+                        val item = generateSubModelItem(subModel).clone()
+                        val potionMeta = item.itemMeta as PotionMeta?
+                        if (potionMeta != null) {
+                            potionMeta.color = color
+                            item.setItemMeta(potionMeta)
+                        }
+                        frame.setItem(item)
                     }
-                    frame.setItem(item);
+                    frame.isSilent = true
+                    frame.isVisible = false
+                    frame.isFixed = true
+                    frame.isInvulnerable = true
+                    frame.rotation = rotation
+                    frame.setFacingDirection(BlockFace.UP)
+                    frame.persistentDataContainer.set(
+                        NamespacedKey(
+                            JavaPlugin.getPlugin(
+                                FurnitureEngine::class.java
+                            ), "format"
+                        ), PersistentDataType.INTEGER, Utils.furnitureFormatVersion
+                    )
                 }
-
-                frame.setSilent(true);
-                frame.setVisible(false);
-                frame.setFixed(true);
-                frame.setInvulnerable(true);
-
-                frame.setRotation(rotation);
-
-                frame.setFacingDirection(BlockFace.UP);
-
-                frame.getPersistentDataContainer().set(new NamespacedKey(FurnitureEngine.getPlugin(FurnitureEngine.class), "format"), PersistentDataType.INTEGER, Utils.getFurnitureFormatVersion());
-            });
-
-            subModelLocation.getBlock().setType(Material.BARRIER);
+            subModelLocation.block.type = Material.BARRIER
         }
-
-        return true;
+        return true
     }
 
-    public boolean breakFurniture(@Nullable Player player, @NotNull Location location) {
-        if(player != null) {
-            BlockBreakEvent blockBreakEvent = new BlockBreakEvent(location.getBlock(), player);
-            plugin.getServer().getPluginManager().callEvent(blockBreakEvent);
-
-            if (blockBreakEvent.isCancelled()) {
-                return false;
+    fun breakFurniture(player: Player?, location: Location): Boolean {
+        if (player != null) {
+            val blockBreakEvent = BlockBreakEvent(location.block, player)
+            plugin!!.server.pluginManager.callEvent(blockBreakEvent)
+            if (blockBreakEvent.isCancelled) {
+                return false
             }
         }
-
-        FurnitureBreakEvent event = new FurnitureBreakEvent(this, player, location);
-        plugin.getServer().getPluginManager().callEvent(event);
-
-        if(event.isCancelled()) {
-            return false;
+        val event = FurnitureBreakEvent(this, player, location)
+        plugin!!.server.pluginManager.callEvent(event)
+        if (event.isCancelled) {
+            return false
         }
-
-        Rotation rot = null;
-        boolean inheritColor = false; Color color = Color.WHITE;
+        var rot: Rotation? = null
+        var inheritColor = false
+        var color = Color.WHITE
         // Destroy the initial item frame + block
-        for(Entity entity : location.getWorld().getNearbyEntities(location.add(0.5, 0, 0.5), 0.2, 0.2, 0.2)) {
-            if(entity instanceof ItemFrame itemFrame) {
-
-                if(itemFrame.getPersistentDataContainer().has(new NamespacedKey(FurnitureEngine.getPlugin(FurnitureEngine.class), "format"), PersistentDataType.INTEGER)) {
-                    if(itemFrame.getItem().getType() == Material.TIPPED_ARROW) {
-                        PotionMeta potionMeta = (PotionMeta) itemFrame.getItem().getItemMeta();
-                        if(potionMeta != null) {
-                            color = potionMeta.getColor();
-                            inheritColor = true;
+        for (entity in location.world!!
+            .getNearbyEntities(location.add(0.5, 0.0, 0.5), 0.2, 0.2, 0.2)) {
+            if (entity is ItemFrame) {
+                if (entity.getPersistentDataContainer().has<Int, Int>(
+                        NamespacedKey(
+                            JavaPlugin.getPlugin<FurnitureEngine>(
+                                FurnitureEngine::class.java
+                            ), "format"
+                        ), PersistentDataType.INTEGER
+                    )
+                ) {
+                    if (entity.item.type == Material.TIPPED_ARROW) {
+                        val potionMeta = entity.item.itemMeta as PotionMeta?
+                        if (potionMeta != null) {
+                            color = potionMeta.color
+                            inheritColor = true
                         }
                     }
-
-                    itemFrame.remove();
-
-                    rot = itemFrame.getRotation();
-
-                    location.getBlock().setType(Material.AIR);
-
-                    break;
+                    entity.remove()
+                    rot = entity.rotation
+                    location.block.type = Material.AIR
+                    break
                 }
             }
         }
-
-        if(rot == null) {
-            return false;
+        if (rot == null) {
+            return false
         }
 
         // Now time to destroy all submodels
-        for(SubModel subModel : subModels) {
-            Location subModelLocation = Utils.getRelativeLocation(location, subModel.getOffset(), rot);
-
-            for(Entity entity : subModelLocation.getWorld().getNearbyEntities(subModelLocation, 0.2, 0.2, 0.2)) {
-                if(entity instanceof ItemFrame itemFrame) {
-                    if(itemFrame.getPersistentDataContainer().has(new NamespacedKey(FurnitureEngine.getPlugin(FurnitureEngine.class), "format"), PersistentDataType.INTEGER)) {
-                        itemFrame.remove();
-
-                        subModelLocation.getBlock().setType(Material.AIR);
-
-                        break;
+        for (subModel in subModels) {
+            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rot)
+            for (entity in subModelLocation.world!!
+                .getNearbyEntities(subModelLocation, 0.2, 0.2, 0.2)) {
+                if (entity is ItemFrame) {
+                    if (entity.getPersistentDataContainer().has(
+                            NamespacedKey(
+                                JavaPlugin.getPlugin(
+                                    FurnitureEngine::class.java
+                                ), "format"
+                            ), PersistentDataType.INTEGER
+                        )
+                    ) {
+                        entity.remove()
+                        subModelLocation.block.type = Material.AIR
+                        break
                     }
                 }
             }
         }
-
-        if(player != null) {
-            this.callFunction(
-                    FunctionType.BREAK,
-                    location,
-                    player,
-                    location
-            );
+        if (player != null) {
+            callFunction(
+                FunctionType.BREAK,
+                location,
+                player,
+                location
+            )
 
             // If the player isn't in creative, drop the item
-            if (!player.getGameMode().equals(GameMode.CREATIVE) && event.isDroppingItems()) {
-                if (!inheritColor)
-                    location.getWorld().dropItemNaturally(location, this.getDropItem());
-                else {
-                    ItemStack item = this.getDropItem();
-                    PotionMeta potionMeta = (PotionMeta) item.getItemMeta();
+            if (player.gameMode != GameMode.CREATIVE && event.isDroppingItems) {
+                if (!inheritColor) location.world!!.dropItemNaturally(location, dropItem) else {
+                    val item = dropItem
+                    val potionMeta = item.itemMeta as PotionMeta?
                     if (potionMeta != null) {
-                        potionMeta.setColor(color);
-                        item.setItemMeta(potionMeta);
+                        potionMeta.color = color
+                        item.setItemMeta(potionMeta)
                     }
-                    location.getWorld().dropItemNaturally(location, item);
+                    location.world!!.dropItemNaturally(location, item)
                 }
             }
         }
-
-        return true;
+        return true
     }
 
-    public boolean callFunction(FunctionType type, Location clickedLocation, Player interactingPlayer, Location originLocation) {
-        if(!functions.containsKey(type)) return false;
-
-        List<HashMap<String, Object>> funList = functions.get(type);
-
-        for(HashMap<String, Object> args : funList) {
-            FunctionManager.getInstance().call(
-                    args.get("type").toString(),
-                    args,
-                    interactingPlayer,
-                    this,
-                    clickedLocation,
-                    originLocation
-            );
+    fun callFunction(
+        type: FunctionType,
+        clickedLocation: Location?,
+        interactingPlayer: Player?,
+        originLocation: Location?
+    ): Boolean {
+        if (!functions.containsKey(type)) return false
+        val funList: List<HashMap<String, Any?>> = functions[type]!!
+        for (args in funList) {
+            FunctionManager.instance!!.call(
+                args["type"].toString(),
+                args,
+                interactingPlayer,
+                this,
+                clickedLocation,
+                originLocation
+            )
         }
+        return true
+    }
 
-        return true;
+    companion object {
+        var plugin: FurnitureEngine? = FurnitureEngine.instance
     }
 }

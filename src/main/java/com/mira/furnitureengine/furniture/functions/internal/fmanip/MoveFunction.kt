@@ -1,31 +1,23 @@
-package com.mira.furnitureengine.furniture.functions.internal.fmanip;
+package com.mira.furnitureengine.furniture.functions.internal.fmanip
 
-import com.mira.furnitureengine.FurnitureEngine;
-import com.mira.furnitureengine.furniture.functions.Function;
+import com.mira.furnitureengine.FurnitureEngine
+import com.mira.furnitureengine.furniture.functions.Function
+import java.util.*
 
-import java.util.HashMap;
+class MoveFunction : Function {
+    override val type: String
+        get() = "MOVE"
 
-public class MoveFunction implements Function {
-    @Override
-    public String getType() {
-        return "MOVE";
-    }
-
-    @Override
-    public void execute(HashMap<String, Object> args) throws IllegalArgumentException {
+    @Throws(IllegalArgumentException::class)
+    override fun execute(args: HashMap<String, Any?>) {
         // get position
-        String pos = (String) args.get("position");
-
-        if(pos == null) pos = "LOCAL"; Position position;
-
-        try {
-            position = Position.valueOf(pos.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            FurnitureEngine.getInstance().getLogger().warning("Invalid position in MOVE function: " + pos);
-
-            return;
+        var pos = args["position"] as String?
+        if (pos == null) pos = "LOCAL"
+        val position: Position = try {
+            Position.valueOf(pos.uppercase(Locale.getDefault()))
+        } catch (e: IllegalArgumentException) {
+            FurnitureEngine.instance!!.getLogger().warning("Invalid position in MOVE function: $pos")
+            return
         }
-
-
     }
 }

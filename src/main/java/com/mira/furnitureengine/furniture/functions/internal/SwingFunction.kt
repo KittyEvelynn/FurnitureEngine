@@ -1,32 +1,23 @@
-package com.mira.furnitureengine.furniture.functions.internal;
+package com.mira.furnitureengine.furniture.functions.internal
 
-import com.mira.furnitureengine.furniture.functions.Function;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
+import com.mira.furnitureengine.furniture.functions.Function
+import org.bukkit.entity.Player
 
-import java.util.HashMap;
+class SwingFunction : Function {
+    override val type: String
+        get() = "SWING_ARM"
 
-public class SwingFunction implements Function {
-    @Override
-    public String getType() {
-        return "SWING_ARM";
-    }
-
-    @Override
-    public void execute(HashMap<String, Object> args) throws IllegalArgumentException {
-        Player player = (Player) args.get("player");
-
-        if(!args.containsKey("arm")) throw new IllegalArgumentException("Missing argument: arm");
-
-        String arm = (String) args.get("arm");
-
-        if(arm.equalsIgnoreCase("right")) {
-            player.swingMainHand();
-        } else if(arm.equalsIgnoreCase("left")) {
-            player.swingOffHand();
+    @Throws(IllegalArgumentException::class)
+    override fun execute(args: HashMap<String, Any?>) {
+        val player = args["player"] as Player?
+        require(args.containsKey("arm")) { "Missing argument: arm" }
+        val arm = args["arm"] as String?
+        if (arm.equals("right", ignoreCase = true)) {
+            player!!.swingMainHand()
+        } else if (arm.equals("left", ignoreCase = true)) {
+            player!!.swingOffHand()
         } else {
-            throw new IllegalArgumentException("Invalid argument: arm");
+            throw IllegalArgumentException("Invalid argument: arm")
         }
-
     }
 }

@@ -1,40 +1,31 @@
-package com.mira.furnitureengine.furniture.functions.internal;
+package com.mira.furnitureengine.furniture.functions.internal
 
-import com.mira.furnitureengine.furniture.functions.Function;
-import com.ranull.sittable.Sittable;
-import dev.geco.gsit.api.GSitAPI;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.PluginManager;
+import com.mira.furnitureengine.furniture.functions.Function
+import com.ranull.sittable.Sittable
+import dev.geco.gsit.api.GSitAPI
+import org.bukkit.Bukkit
+import org.bukkit.Location
+import org.bukkit.entity.Player
 
-import java.util.HashMap;
+class SitFunction : Function {
+    override val type: String
+        get() = "CHAIR"
 
-public class SitFunction implements Function {
-    @Override
-    public String getType() {
-        return "CHAIR";
-    }
-
-    @Override
-    public void execute(HashMap<String, Object> args) {
-        Player player = (Player) args.get("player");
-        Location location = (Location) args.get("location");
-
-        float yOffset = args.get("y-offset") == null ? 0 : ((Double) args.get("y-offset")).floatValue();
-
-        PluginManager pm = Bukkit.getServer().getPluginManager();
-
-        if(pm.getPlugin("GSit") != null) {
-            if (GSitAPI.getSeats(location.getBlock()).size() == 0) {
-                GSitAPI.createSeat(location.getBlock(), player, true, 0, yOffset, 0, 0, true);
+    override fun execute(args: HashMap<String, Any?>) {
+        val player = args["player"] as Player?
+        val location = args["location"] as Location?
+        val yOffset: Float = if (args["y-offset"] == null) 0f else (args["y-offset"] as Double?)!!.toFloat()
+        val pm = Bukkit.getServer().pluginManager
+        if (pm.getPlugin("GSit") != null) {
+            if (GSitAPI.getSeats(location!!.block).size == 0) {
+                GSitAPI.createSeat(location.block, player!!, true, 0.0, yOffset.toDouble(), 0.0, 0f, true)
             }
-        } else if(pm.getPlugin("Sittable") != null) {
-            if (!Sittable.isBlockOccupied(location.getBlock())) {
-                Sittable.sitOnBlock(player, location.getBlock(), 0.0, yOffset, 0.0, player.getFacing().getOppositeFace());
+        } else if (pm.getPlugin("Sittable") != null) {
+            if (!Sittable.isBlockOccupied(location!!.block)) {
+                Sittable.sitOnBlock(player, location.block, 0.0, yOffset.toDouble(), 0.0, player!!.facing.oppositeFace)
             }
         } else {
-            throw new IllegalArgumentException("Missing sit plugin. Please install either GSit or Sittable.");
+            throw IllegalArgumentException("Missing sit plugin. Please install either GSit or Sittable.")
         }
     }
 }

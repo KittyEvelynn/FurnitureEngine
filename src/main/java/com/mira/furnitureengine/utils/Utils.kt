@@ -1,79 +1,71 @@
-package com.mira.furnitureengine.utils;
+package com.mira.furnitureengine.utils
 
+import com.mira.furnitureengine.furniture.core.Furniture
+import com.mira.furnitureengine.furniture.core.Furniture.RotSides
+import com.mira.furnitureengine.furniture.core.SubModel
+import org.bukkit.Color
+import org.bukkit.Location
+import org.bukkit.Material
+import org.bukkit.Rotation
+import org.bukkit.block.Block
+import org.bukkit.block.BlockFace
+import org.bukkit.entity.Entity
+import org.bukkit.entity.EntityType
+import org.bukkit.entity.ItemFrame
+import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.PotionMeta
+import org.bukkit.util.Vector
 
-import com.mira.furnitureengine.furniture.core.Furniture;
-import com.mira.furnitureengine.furniture.core.SubModel;
-import org.bukkit.Color;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Rotation;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.ItemFrame;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.util.Vector;
-
-import java.util.Collection;
-import java.util.List;
-
-public class Utils {
-    private final static int FURNITURE_FORMAT_VERSION = 3;
-
-    public static int getFurnitureFormatVersion() {
-        return FURNITURE_FORMAT_VERSION;
-    }
-
-    public static boolean itemsMatch(ItemStack item1, ItemStack item2) {
-        if(item1 == null || item2 == null) return false;
-
-        if(item1.getType() != item2.getType()) return false;
-
-        if(item1.hasItemMeta() && item2.hasItemMeta()) {
-            if(item1.getItemMeta().hasDisplayName() && item2.getItemMeta().hasDisplayName()) {
-                if(!item1.getItemMeta().getDisplayName().equals(item2.getItemMeta().getDisplayName())) return false;
+object Utils {
+    const val furnitureFormatVersion = 3
+    fun itemsMatch(item1: ItemStack?, item2: ItemStack?): Boolean {
+        if (item1 == null || item2 == null) return false
+        if (item1.type != item2.type) return false
+        if (item1.hasItemMeta() && item2.hasItemMeta()) {
+            if (item1.itemMeta!!.hasDisplayName() && item2.itemMeta!!.hasDisplayName()) {
+                if (item1.itemMeta!!.displayName != item2.itemMeta!!.displayName) return false
             }
-            if(item1.getItemMeta().hasLore() && item2.getItemMeta().hasLore()) {
-                if(!item1.getItemMeta().getLore().equals(item2.getItemMeta().getLore())) return false;
+            if (item1.itemMeta!!.hasLore() && item2.itemMeta!!.hasLore()) {
+                if (item1.itemMeta!!.lore != item2.itemMeta!!.lore) return false
             }
-
-            if(item1.getItemMeta().hasCustomModelData() && item2.getItemMeta().hasCustomModelData()) {
-                if(item1.getItemMeta().getCustomModelData() != item2.getItemMeta().getCustomModelData()) return false;
+            if (item1.itemMeta!!.hasCustomModelData() && item2.itemMeta!!.hasCustomModelData()) {
+                if (item1.itemMeta!!.customModelData != item2.itemMeta!!.customModelData) return false
             }
         }
-
-        return true;
+        return true
     }
 
-    public static Location calculatePlacingLocation(Block clickedBlock, BlockFace clickedFace) {
-        Location location = clickedBlock.getLocation();
+    fun calculatePlacingLocation(clickedBlock: Block?, clickedFace: BlockFace?): Location {
+        val location = clickedBlock!!.location
+        if (!isSolid(clickedBlock)) return location
+        when (clickedFace) {
+            BlockFace.UP -> {
+                location.add(0.0, 1.0, 0.0)
+            }
 
-        if(!Utils.isSolid(clickedBlock)) return location;
+            BlockFace.DOWN -> {
+                location.add(0.0, -1.0, 0.0)
+            }
 
-        switch (clickedFace) {
-            case UP -> {
-                location.add(0, 1, 0);
+            BlockFace.NORTH -> {
+                location.add(0.0, 0.0, -1.0)
             }
-            case DOWN -> {
-                location.add(0, -1, 0);
+
+            BlockFace.SOUTH -> {
+                location.add(0.0, 0.0, 1.0)
             }
-            case NORTH -> {
-                location.add(0, 0, -1);
+
+            BlockFace.WEST -> {
+                location.add(-1.0, 0.0, 0.0)
             }
-            case SOUTH -> {
-                location.add(0, 0, 1);
+
+            BlockFace.EAST -> {
+                location.add(1.0, 0.0, 0.0)
             }
-            case WEST -> {
-                location.add(-1, 0, 0);
-            }
-            case EAST -> {
-                location.add(1, 0, 0);
-            }
+
+            else -> {}
         }
-
-        return location;
+        return location
     }
 
     /**
@@ -83,17 +75,14 @@ public class Utils {
      * @param furniture The furniture to check
      * @return Whether the furniture can be placed or not
      */
-    public static boolean hasSpace(Location location, Rotation rotation, Furniture furniture) {
-        if(Utils.isSolid(location.getBlock())) return false;
-
-        if(furniture.getSubModels().size() == 0) return true;
-
-        for(SubModel subModel : furniture.getSubModels()) {
-            Location subModelLocation = Utils.getRelativeLocation(location, subModel.getOffset(), rotation);
-            if(Utils.isSolid(subModelLocation.getBlock())) return false;
+    fun hasSpace(location: Location?, rotation: Rotation?, furniture: Furniture): Boolean {
+        if (isSolid(location!!.block)) return false
+        if (furniture.subModels.size == 0) return true
+        for (subModel in furniture.subModels) {
+            val subModelLocation = getRelativeLocation(location, subModel.offset, rotation)
+            if (isSolid(subModelLocation.block)) return false
         }
-
-        return true;
+        return true
     }
 
     /**
@@ -103,19 +92,22 @@ public class Utils {
      * @param rotation The rotation of the item
      * @return The relative location
      */
-    public static Location getRelativeLocation(Location input, Vector offset, Rotation rotation) {
-        switch(rotation) {
-            case CLOCKWISE -> {
-                return input.clone().add(-offset.getZ(), offset.getY(), offset.getX());
+    fun getRelativeLocation(input: Location?, offset: Vector?, rotation: Rotation?): Location {
+        return when (rotation) {
+            Rotation.CLOCKWISE -> {
+                input!!.clone().add(-offset!!.z, offset.y, offset.x)
             }
-            case FLIPPED -> {
-                return input.clone().add(-offset.getX(), offset.getY(), -offset.getZ());
+
+            Rotation.FLIPPED -> {
+                input!!.clone().add(-offset!!.x, offset.y, -offset.z)
             }
-            case COUNTER_CLOCKWISE -> {
-                return input.clone().add(offset.getZ(), offset.getY(), -offset.getX());
+
+            Rotation.COUNTER_CLOCKWISE -> {
+                input!!.clone().add(offset!!.z, offset.y, -offset.x)
             }
-            default -> {
-                return input.clone().add(offset);
+
+            else -> {
+                input!!.clone().add(offset!!)
             }
         }
     }
@@ -126,34 +118,35 @@ public class Utils {
      * @param furniture The furniture
      * @return The relative location
      */
-    public static Location getOriginLocation(Location input, Furniture furniture) {
+    fun getOriginLocation(input: Location?, furniture: Furniture): Location? {
         // Check for item frames
-        Collection<Entity> entities = input.getWorld().getNearbyEntities(input.clone().add(0.5, 0, 0.5), 0.1, 0.1, 0.1);
-        for(Entity entity : entities) {
-            if(entity instanceof ItemFrame frame) {
+        val entities = input!!.world!!
+            .getNearbyEntities(input.clone().add(0.5, 0.0, 0.5), 0.1, 0.1, 0.1)
+        for (entity in entities) {
+            if (entity is ItemFrame) {
                 // Get the item and compare it to the furniture
-                if(itemsMatch(frame.getItem(), furniture.getBlockItem())) {
-                    return input.clone();
-                }
-                else {
-                    for(SubModel subModel : furniture.getSubModels()) {
-                        if(itemsMatch(frame.getItem(), furniture.generateSubModelItem(subModel))) {
-                            Rotation rotation = frame.getRotation();
+                if (itemsMatch(entity.item, furniture.blockItem)) {
+                    return input.clone()
+                } else {
+                    for (subModel in furniture.subModels) {
+                        if (itemsMatch(entity.item, furniture.generateSubModelItem(subModel))) {
+                            val rotation: Rotation = entity.rotation
+                            val offset = subModel.offset.clone()
+                            return when (rotation) {
+                                Rotation.CLOCKWISE -> {
+                                    input.clone().subtract(-offset.z, offset.y, offset.x)
+                                }
 
-                            Vector offset = subModel.getOffset().clone();
+                                Rotation.FLIPPED -> {
+                                    input.clone().subtract(-offset.x, offset.y, -offset.z)
+                                }
 
-                            switch (rotation) {
-                                case CLOCKWISE -> {
-                                    return input.clone().subtract(-offset.getZ(), offset.getY(), offset.getX());
+                                Rotation.COUNTER_CLOCKWISE -> {
+                                    input.clone().subtract(offset.z, offset.y, -offset.x)
                                 }
-                                case FLIPPED -> {
-                                    return input.clone().subtract(-offset.getX(), offset.getY(), -offset.getZ());
-                                }
-                                case COUNTER_CLOCKWISE -> {
-                                    return input.clone().subtract(offset.getZ(), offset.getY(), -offset.getX());
-                                }
-                                default -> {
-                                    return input.clone().subtract(offset);
+
+                                else -> {
+                                    input.clone().subtract(offset)
                                 }
                             }
                         }
@@ -161,106 +154,107 @@ public class Utils {
                 }
             }
         }
-
-        return null;
+        return null
     }
 
+    fun getRotation(entity: Entity, rotSides: RotSides?): Rotation {
+        var y = entity.location.yaw
+        if (y < 0) y += 360f
+        y %= 360f
+        val i = ((y + 8) / 22.5).toInt()
+        when (rotSides) {
+            RotSides.FOUR_SIDED -> {
+                when (i) {
+                    14, 15, 16, 0, 1 -> {
+                        return Rotation.FLIPPED
+                    }
 
+                    2, 3, 4, 5 -> {
+                        return Rotation.COUNTER_CLOCKWISE
+                    }
 
-    public static Rotation getRotation(Entity entity, Furniture.RotSides rotSides) {
-        float y = entity.getLocation().getYaw();
-        if (y < 0) y += 360;
-        y %= 360;
+                    6, 7, 8, 9 -> {
+                        return Rotation.NONE
+                    }
 
-        int i = (int) ((y + 8) / 22.5);
-
-        if(rotSides == Furniture.RotSides.FOUR_SIDED) {
-            switch (i) {
-                case 14, 15, 16, 0, 1 -> {
-                    return Rotation.FLIPPED;
-                }
-                case 2, 3, 4,5 -> {
-                    return Rotation.COUNTER_CLOCKWISE;
-                }
-                case 6, 7, 8, 9 -> {
-                    return Rotation.NONE;
-                }
-                case 10, 11, 12, 13 -> {
-                    return Rotation.CLOCKWISE;
+                    10, 11, 12, 13 -> {
+                        return Rotation.CLOCKWISE
+                    }
                 }
             }
-        } else if(rotSides == Furniture.RotSides.EIGHT_SIDED) {
-            switch(i) {
-                case 15,16,0,1 -> {
-                    return Rotation.FLIPPED;
-                }
-                case 2 -> {
-                    return Rotation.FLIPPED_45;
-                }
-                case 3,4,5 -> {
-                    return Rotation.COUNTER_CLOCKWISE;
-                }
-                case 6 -> {
-                    return Rotation.COUNTER_CLOCKWISE_45;
-                }
-                case 7,8,9 -> {
-                    return Rotation.NONE;
-                }
-                case 10 -> {
-                    return Rotation.CLOCKWISE_45;
-                }
-                case 11,12,13 -> {
-                    return Rotation.CLOCKWISE;
-                }
-                case 14 -> {
-                    return Rotation.CLOCKWISE_135;
+            RotSides.EIGHT_SIDED -> {
+                when (i) {
+                    15, 16, 0, 1 -> {
+                        return Rotation.FLIPPED
+                    }
+
+                    2 -> {
+                        return Rotation.FLIPPED_45
+                    }
+
+                    3, 4, 5 -> {
+                        return Rotation.COUNTER_CLOCKWISE
+                    }
+
+                    6 -> {
+                        return Rotation.COUNTER_CLOCKWISE_45
+                    }
+
+                    7, 8, 9 -> {
+                        return Rotation.NONE
+                    }
+
+                    10 -> {
+                        return Rotation.CLOCKWISE_45
+                    }
+
+                    11, 12, 13 -> {
+                        return Rotation.CLOCKWISE
+                    }
+
+                    14 -> {
+                        return Rotation.CLOCKWISE_135
+                    }
                 }
             }
-        } else {
-            return Rotation.NONE;
+            else -> {
+                return Rotation.NONE
+            }
         }
-
-        return Rotation.NONE;
+        return Rotation.NONE
     }
 
-    public static boolean entityObstructing(Location location) {
+    fun entityObstructing(location: Location?): Boolean {
         // Check if there is an entity obstructing the location (but item frames get ignored)
-        for(Entity entity : location.getWorld().getNearbyEntities(location.add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5)) {
-            if(entity.getType().isAlive() && entity.getType() != EntityType.ITEM_FRAME) {
-                return true;
+        for (entity in location!!.world!!
+            .getNearbyEntities(location.add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5)) {
+            if (entity.type.isAlive && entity.type != EntityType.ITEM_FRAME) {
+                return true
             }
         }
-
-        return false;
+        return false
     }
 
     /*
         Apparently the Material.isSolid() method is not exactly what I need... For example flowers are considered non-solid,
         but you shouldn't be able to place furniture on them. So I made my own method.
      */
-    public static boolean isSolid(Block block) {
-        if(block.getType().isSolid()) return true;
-
-        else {
-            if(block.getType().getBlastResistance() > 0.2) return true;
-
-            if(block.getType().name().contains("SAPLING")) return true;
-
-            if(block.getType().name().contains("FLOWER") || block.getType().name().contains("TULIP")) return true;
-
-            if(block.getType().name().contains("CARPET")) return true;
-
-            if(block.getType().name().contains("MUSHROOM") || block.getType().name().contains("FUNGUS")) return true;
-
-            if(block.getType().name().contains("BANNER")) return true;
-
-            switch (block.getType()) {
-                case TORCH, SOUL_TORCH, LANTERN, SOUL_LANTERN, REDSTONE_WIRE, REDSTONE, REDSTONE_TORCH, REDSTONE_WALL_TORCH, NETHER_PORTAL, END_PORTAL, BEETROOTS, CARROTS, POTATOES, WHEAT, SWEET_BERRY_BUSH, SCAFFOLDING, PUMPKIN_STEM, MELON_STEM, NETHER_WART, FLOWER_POT, END_ROD, KELP, DANDELION, POPPY, BLUE_ORCHID, ALLIUM, AZURE_BLUET, OXEYE_DAISY, CORNFLOWER, LILY_OF_THE_VALLEY, WITHER_ROSE, COBWEB -> {
-                    return true;
+    fun isSolid(block: Block?): Boolean {
+        return if (block!!.type.isSolid) true else {
+            if (block.type.blastResistance > 0.2) return true
+            if (block.type.name.contains("SAPLING")) return true
+            if (block.type.name.contains("FLOWER") || block.type.name.contains("TULIP")) return true
+            if (block.type.name.contains("CARPET")) return true
+            if (block.type.name.contains("MUSHROOM") || block.type.name.contains("FUNGUS")) return true
+            if (block.type.name.contains("BANNER")) return true
+            when (block.type) {
+                Material.TORCH, Material.SOUL_TORCH, Material.LANTERN, Material.SOUL_LANTERN, Material.REDSTONE_WIRE, Material.REDSTONE, Material.REDSTONE_TORCH, Material.REDSTONE_WALL_TORCH, Material.NETHER_PORTAL, Material.END_PORTAL, Material.BEETROOTS, Material.CARROTS, Material.POTATOES, Material.WHEAT, Material.SWEET_BERRY_BUSH, Material.SCAFFOLDING, Material.PUMPKIN_STEM, Material.MELON_STEM, Material.NETHER_WART, Material.FLOWER_POT, Material.END_ROD, Material.KELP, Material.DANDELION, Material.POPPY, Material.BLUE_ORCHID, Material.ALLIUM, Material.AZURE_BLUET, Material.OXEYE_DAISY, Material.CORNFLOWER, Material.LILY_OF_THE_VALLEY, Material.WITHER_ROSE, Material.COBWEB -> {
+                    return true
                 }
-            }
 
-            return false;
+                else -> {}
+            }
+            false
         }
     }
 
@@ -270,19 +264,12 @@ public class Utils {
      * @param block The block to check
      * @return Whether the block is interactable or not
      */
-    public static boolean isInteractable(Block block) {
-        if(!block.getType().isInteractable()) return false;
-
-        else {
-            if(block.getType().name().contains("STAIRS")) return false;
-
-            if(block.getType().name().contains("TNT")) return false;
-
-            if(block.getType().name().contains("FENCE")) return false;
-
-            if(block.getType().name().contains("IRON")) return false; // iron door, iron trapdoor
-
-            return true;
+    fun isInteractable(block: Block?): Boolean {
+        return if (!block!!.type.isInteractable) false else {
+            if (block.type.name.contains("STAIRS")) return false
+            if (block.type.name.contains("TNT")) return false
+            if (block.type.name.contains("FENCE")) return false
+            !block.type.name.contains("IRON") // iron door, iron trapdoor
         }
     }
 
@@ -291,24 +278,20 @@ public class Utils {
      * @param location The location of the furniture
      * @return The color of the block, or null if it is not colorable
      */
-    public static Color getColor(Location location) {
-        Collection<Entity> entities = location.getWorld().getNearbyEntities(location, 0.2, 0.2, 0.2);
-
-        for (Entity entity : entities) {
-            if (entity.getType() != EntityType.ITEM_FRAME) continue;
-
-            ItemFrame itemFrame = (ItemFrame) entity;
-
-            if (itemFrame.getItem().getType() == Material.TIPPED_ARROW) {
-                PotionMeta potionMeta = (PotionMeta) itemFrame.getItem().getItemMeta();
-
-                if (potionMeta.hasColor()) {
-                    return potionMeta.getColor();
-                } else return null;
+    fun getColor(location: Location?): Color? {
+        val entities = location!!.world!!
+            .getNearbyEntities(location, 0.2, 0.2, 0.2)
+        for (entity in entities) {
+            if (entity.type != EntityType.ITEM_FRAME) continue
+            val itemFrame = entity as ItemFrame
+            if (itemFrame.item.type == Material.TIPPED_ARROW) {
+                val potionMeta = itemFrame.item.itemMeta as PotionMeta?
+                return if (potionMeta!!.hasColor()) {
+                    potionMeta.color
+                } else null
             }
         }
-
-        return null;
+        return null
     }
 
     /**
@@ -316,13 +299,12 @@ public class Utils {
      * @param subModels The submodels to check
      * @return Whether the furniture is only vertical or not
      */
-    public static boolean onlyVertical(List<SubModel> subModels) {
-        for(SubModel subModel : subModels) {
-            if(subModel.getOffset().getX() != 0 || subModel.getOffset().getZ() != 0) {
-                return false;
+    fun onlyVertical(subModels: List<SubModel>): Boolean {
+        for (subModel in subModels) {
+            if (subModel.offset.x != 0.0 || subModel.offset.z != 0.0) {
+                return false
             }
         }
-
-        return true;
+        return true
     }
 }

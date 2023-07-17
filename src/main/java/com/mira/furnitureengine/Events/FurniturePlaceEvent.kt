@@ -1,50 +1,19 @@
-package com.mira.furnitureengine.events;
+package com.mira.furnitureengine.events
 
-import com.mira.furnitureengine.furniture.core.Furniture;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.HandlerList;
-import org.jetbrains.annotations.NotNull;
+import com.mira.furnitureengine.furniture.core.Furniture
+import org.bukkit.Location
+import org.bukkit.entity.Player
+import org.bukkit.event.Event
+import org.bukkit.event.HandlerList
 
-public class FurniturePlaceEvent extends Event {
+class FurniturePlaceEvent(val furniture: Furniture, val player: Player?, val furnitureLocation: Location) : Event() {
+    var isCancelled = false
 
-    private static final HandlerList handlers = new HandlerList();
-    private boolean cancelled;
-
-    private final Furniture furniture;
-
-    private final Player interactingPlayer;
-
-    private final Location furnitureLocation;
-
-    public FurniturePlaceEvent(Furniture furniture, Player interactingPlayer, Location furnitureLocation) {
-        this.furniture = furniture;
-        this.interactingPlayer = interactingPlayer;
-        this.furnitureLocation = furnitureLocation;
+    override fun getHandlers(): HandlerList {
+        return Companion.handlers
     }
 
-    public Player getPlayer() {
-        return interactingPlayer;
-    }
-
-    public Location getFurnitureLocation() {
-        return furnitureLocation;
-    }
-
-    public Furniture getFurniture() {
-        return furniture;
-    }
-
-    public boolean isCancelled() {
-        return cancelled;
-    }
-
-    public void setCancelled(boolean cancel) {
-        cancelled = cancel;
-    }
-
-    public @NotNull HandlerList getHandlers() {
-        return handlers;
+    companion object {
+        private val handlers = HandlerList()
     }
 }

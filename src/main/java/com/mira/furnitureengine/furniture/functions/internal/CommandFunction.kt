@@ -1,55 +1,51 @@
-package com.mira.furnitureengine.furniture.functions.internal;
+package com.mira.furnitureengine.furniture.functions.internal
 
-import com.mira.furnitureengine.furniture.core.Furniture;
-import com.mira.furnitureengine.furniture.functions.Function;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import com.mira.furnitureengine.furniture.core.Furniture
+import com.mira.furnitureengine.furniture.functions.Function
+import org.bukkit.*
+import org.bukkit.entity.Player
 
-import java.util.HashMap;
+class CommandFunction : Function {
+    override val type: String
+        get() = "COMMAND"
 
-public class CommandFunction implements Function {
-
-    @Override
-    public String getType() {
-        return "COMMAND";
-    }
-
-    @Override
-    public void execute(HashMap<String, Object> args) throws IllegalArgumentException {
-        if (!args.containsKey("command")) throw new IllegalArgumentException("Missing argument: command");
-
-        String command = (String) args.get("command");
+    @Throws(IllegalArgumentException::class)
+    override fun execute(args: HashMap<String, Any?>) {
+        require(args.containsKey("command")) { "Missing argument: command" }
+        var command = args["command"] as String?
 
         // placeholders
-        command = command
-                .replace("%player%", ((Player) args.get("player")).getName())
-                .replace("%furniture%", ((Furniture) args.get("furniture")).getId())
-                .replace("%location%", ((Location) args.get("location")).getX() + " " + ((Location) args.get("location")).getY() + " " + ((Location) args.get("location")).getZ())
-                .replace("%world%", ((Location) args.get("location")).getWorld().getName())
-                .replace("%location_x%", ((Location) args.get("location")).getX() + "")
-                .replace("%location_y%", ((Location) args.get("location")).getY() + "")
-                .replace("%location_z%", ((Location) args.get("location")).getZ() + "")
-                .replace("%origin%", ((Location) args.get("origin")).getX() + " " + ((Location) args.get("origin")).getY() + " " + ((Location) args.get("origin")).getZ())
-                .replace("%origin_x%", ((Location) args.get("origin")).getX() + "")
-                .replace("%origin_y%", ((Location) args.get("origin")).getY() + "")
-                .replace("%origin_z%", ((Location) args.get("origin")).getZ() + "");
-
-        Player player = (Player) args.get("player");
-        boolean isOperator = player.isOp();
-
+        command = command!!
+            .replace("%player%", (args["player"] as Player?)!!.name)
+            .replace("%furniture%", (args["furniture"] as Furniture?)!!.id)
+            .replace(
+                "%location%",
+                (args["location"] as Location?)!!.x.toString() + " " + (args["location"] as Location?)!!.y + " " + (args["location"] as Location?)!!.z
+            )
+            .replace("%world%", (args["location"] as Location?)!!.world!!.name)
+            .replace("%location_x%", (args["location"] as Location?)!!.x.toString() + "")
+            .replace("%location_y%", (args["location"] as Location?)!!.y.toString() + "")
+            .replace("%location_z%", (args["location"] as Location?)!!.z.toString() + "")
+            .replace(
+                "%origin%",
+                (args["origin"] as Location?)!!.x.toString() + " " + (args["origin"] as Location?)!!.y + " " + (args["origin"] as Location?)!!.z
+            )
+            .replace("%origin_x%", (args["origin"] as Location?)!!.x.toString() + "")
+            .replace("%origin_y%", (args["origin"] as Location?)!!.y.toString() + "")
+            .replace("%origin_z%", (args["origin"] as Location?)!!.z.toString() + "")
+        val player = args["player"] as Player?
+        val isOperator = player!!.isOp
         if (command.startsWith("[op]")) {
             try {
-                player.setOp(true);
-                player.performCommand(command.substring(4));
+                player.isOp = true
+                player.performCommand(command.substring(4))
             } finally {
-                player.setOp(isOperator);
+                player.isOp = isOperator
             }
         } else if (command.startsWith("[console]")) {
-            Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command.substring(9));
+            Bukkit.getServer().dispatchCommand(Bukkit.getServer().consoleSender, command.substring(9))
         } else {
-            player.performCommand(command);
+            player.performCommand(command)
         }
     }
 }

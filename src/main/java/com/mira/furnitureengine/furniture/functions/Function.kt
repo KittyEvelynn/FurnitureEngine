@@ -1,9 +1,8 @@
-package com.mira.furnitureengine.furniture.functions;
+package com.mira.furnitureengine.furniture.functions
 
-import java.util.HashMap;
+interface Function {
+    val type: String
 
-public interface Function {
-    String getType();
-
-    void execute(HashMap<String, Object> args) throws IllegalArgumentException;
+    @Throws(IllegalArgumentException::class)
+    fun execute(args: HashMap<String, Any?>)
 }

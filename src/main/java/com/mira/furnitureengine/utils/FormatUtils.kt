@@ -1,47 +1,40 @@
-package com.mira.furnitureengine.utils;
+package com.mira.furnitureengine.utils
 
-import org.bukkit.ChatColor;
+import org.bukkit.ChatColor
+import java.util.regex.Pattern
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-public class FormatUtils {
+object FormatUtils {
     /**
      * This file defines colors,
      * and gradients for item names.
      */
-
-    public final static char COLOR_CHAR = ChatColor.COLOR_CHAR;
-
-    public static String format(String input){
-        return translateHexColorCodes("&#",ChatColor.translateAlternateColorCodes('&', input));
+    const val COLOR_CHAR = ChatColor.COLOR_CHAR
+    fun format(input: String?): String {
+        return translateHexColorCodes("&#", ChatColor.translateAlternateColorCodes('&', input!!))
     }
 
-    public static List<String> format(List<String> input){
-        List<String> output = new ArrayList<>();
-        for(String string : input){
-            output.add(format(string));
+    fun format(input: List<String?>): List<String> {
+        val output: MutableList<String> = ArrayList()
+        for (string in input) {
+            output.add(format(string))
         }
-        return output;
+        return output
     }
 
     // Custom Hex Colors
-    public static String translateHexColorCodes(String startTag, String message)
-    {
-        final Pattern hexPattern = Pattern.compile(startTag + "([A-Fa-f0-9]{6})");
-        Matcher matcher = hexPattern.matcher(message);
-        StringBuilder buffer = new StringBuilder(message.length() + 4 * 8);
-        while (matcher.find())
-        {
-            String group = matcher.group(1);
-            matcher.appendReplacement(buffer, COLOR_CHAR + "x"
-                    + COLOR_CHAR + group.charAt(0) + COLOR_CHAR + group.charAt(1)
-                    + COLOR_CHAR + group.charAt(2) + COLOR_CHAR + group.charAt(3)
-                    + COLOR_CHAR + group.charAt(4) + COLOR_CHAR + group.charAt(5)
-            );
+    fun translateHexColorCodes(startTag: String, message: String): String {
+        val hexPattern = Pattern.compile("$startTag([A-Fa-f0-9]{6})")
+        val matcher = hexPattern.matcher(message)
+        val buffer = StringBuilder(message.length + 4 * 8)
+        while (matcher.find()) {
+            val group = matcher.group(1)
+            matcher.appendReplacement(
+                buffer, COLOR_CHAR.toString() + "x"
+                        + COLOR_CHAR + group[0] + COLOR_CHAR + group[1]
+                        + COLOR_CHAR + group[2] + COLOR_CHAR + group[3]
+                        + COLOR_CHAR + group[4] + COLOR_CHAR + group[5]
+            )
         }
-        return matcher.appendTail(buffer).toString();
+        return matcher.appendTail(buffer).toString()
     }
 }

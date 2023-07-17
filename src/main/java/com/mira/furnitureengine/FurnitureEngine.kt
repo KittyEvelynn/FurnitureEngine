@@ -1,65 +1,57 @@
-package com.mira.furnitureengine;
+package com.mira.furnitureengine
 
-import com.mira.furnitureengine.commands.CoreCommand;
-import com.mira.furnitureengine.commands.CoreCommandTabCompleter;
-import com.mira.furnitureengine.furniture.FurnitureManager;
-import com.mira.furnitureengine.furniture.functions.FunctionManager;
-import com.mira.furnitureengine.listeners.PlayerInteractListener;
-import com.mira.furnitureengine.utils.UpdateChecker;
-import org.bstats.bukkit.Metrics;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.plugin.java.JavaPlugin;
+import com.mira.furnitureengine.commands.CoreCommand
+import com.mira.furnitureengine.commands.CoreCommandTabCompleter
+import com.mira.furnitureengine.furniture.FurnitureManager
+import com.mira.furnitureengine.furniture.functions.FunctionManager
+import com.mira.furnitureengine.listeners.PlayerInteractListener
+import com.mira.furnitureengine.utils.UpdateChecker
+import org.bstats.bukkit.Metrics
+import org.bukkit.plugin.java.JavaPlugin
 
-public final class FurnitureEngine extends JavaPlugin {
-    public static FurnitureEngine getInstance() {
-        return instance;
-    }
-
-    private static FurnitureEngine instance;
-
-    @Override
-    public void onEnable() {
-        instance = this;
-
-        getLogger().info("FurnitureEngine has been enabled!");
+class FurnitureEngine : JavaPlugin() {
+    override fun onEnable() {
+        instance = this
+        logger.info("FurnitureEngine has been enabled!")
 
         // Load config
-        loadConfig();
+        loadConfig()
 
         // Static access... doing this so that it instantiates the classes
-        FurnitureManager.getInstance();
-        FunctionManager.getInstance();
-
-        if(this.getConfig().getBoolean("Options.checkForUpdates")) {
-            new UpdateChecker(97134).getVersion(version -> {
-                if (this.getDescription().getVersion().equalsIgnoreCase(version)) {
-                    this.getLogger().info("You are running the latest version of FurnitureEngine!");
+        FurnitureManager.instance
+        FunctionManager.instance
+        if (this.config.getBoolean("Options.checkForUpdates")) {
+            UpdateChecker(97134).getVersion { version: String ->
+                if (description.version.equals(version, ignoreCase = true)) {
+                    logger.info("You are running the latest version of FurnitureEngine!")
                 } else {
-                    this.getLogger().info("There is a new update available for FurnitureEngine!" + " (Current version: " + this.getDescription().getVersion() + " New version: " + version + ")");
+                    logger.info("There is a new update available for FurnitureEngine!" + " (Current version: " + description.version + " New version: " + version + ")")
                 }
-            });
+            }
         }
 
         // Register commands
-        getCommand("furnitureengine").setExecutor(new CoreCommand());
-        getCommand("furnitureengine").setTabCompleter(new CoreCommandTabCompleter());
+        getCommand("furnitureengine")!!.setExecutor(CoreCommand())
+        getCommand("furnitureengine")!!.tabCompleter = CoreCommandTabCompleter()
 
         // Register events
-        getServer().getPluginManager().registerEvents(new PlayerInteractListener(), this);
+        server.pluginManager.registerEvents(PlayerInteractListener(), this)
 
         // Register metrics
-        new Metrics(this, 13146);
+        // Metrics(this, 13146) TODO fix this when i feel like it
     }
 
-    @Override
-    public void onDisable() {
+    override fun onDisable() {
         // Plugin shutdown logic
     }
 
-    public void loadConfig() {
-        getConfig().options().copyDefaults(true);
-        saveConfig();
+    private fun loadConfig() {
+        config.options().copyDefaults(true)
+        saveConfig()
+    }
+
+    companion object {
+        var instance: FurnitureEngine? = null
+            private set
     }
 }

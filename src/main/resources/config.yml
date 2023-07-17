@@ -1,4 +1,4 @@
 Furniture: {}
 
 Options:
-  checkForUpdates: true
+  checkForUpdates: false

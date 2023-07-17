@@ -1,48 +1,35 @@
-package com.mira.furnitureengine.furniture.core;
+package com.mira.furnitureengine.furniture.core
 
-import org.bukkit.configuration.serialization.ConfigurationSerializable;
-import org.bukkit.util.Vector;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.bukkit.configuration.serialization.ConfigurationSerializable
+import org.bukkit.util.Vector
 
 // Submodel contains vector (offset) and custom model data (int)
-public class SubModel implements ConfigurationSerializable {
-    protected final Vector offset;
-    protected final int model_data;
+class SubModel(offset: Vector?, customModelData: Int) : ConfigurationSerializable {
+    val offset: Vector
+    val customModelData: Int
 
-    public SubModel(Vector offset, int customModelData) {
-        this.offset = offset;
-        this.model_data = customModelData;
+    init {
+        this.offset = offset!!
+        this.customModelData = customModelData
     }
 
-    public Vector getOffset() {
-        return offset;
+    override fun serialize(): Map<String, Any> {
+        val map: MutableMap<String, Any> = HashMap()
+        map["offset"] = offset
+        map["model_data"] = customModelData
+        return map
     }
 
-    public int getCustomModelData() {
-        return model_data;
-    }
-
-    @Override
-    public Map<String, Object> serialize() {
-        Map<String, Object> map = new HashMap<>();
-
-        map.put("offset", offset);
-        map.put("model_data", model_data);
-
-        return map;
-    }
-
-    public static SubModel deserialize(Map<String, Object> map) {
-        return new SubModel((Vector) map.get("offset"), (int) map.get("model_data"));
-    }
-
-    @Override
-    public String toString() {
+    override fun toString(): String {
         return "SubModel{" +
                 "offset=" + offset +
-                ", model_data=" + model_data +
-                '}';
+                ", model_data=" + customModelData +
+                '}'
+    }
+
+    companion object {
+        fun deserialize(map: Map<String?, Any?>): SubModel {
+            return SubModel(map["offset"] as Vector?, map["model_data"] as Int)
+        }
     }
 }
