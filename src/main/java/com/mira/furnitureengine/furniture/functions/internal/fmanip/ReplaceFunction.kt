@@ -8,7 +8,7 @@ import com.mira.furnitureengine.furniture.functions.FunctionType
 import com.mira.furnitureengine.utils.Utils
 import org.bukkit.*
 import org.bukkit.entity.EntityType
-import org.bukkit.entity.ItemFrame
+import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.Player
 
 class ReplaceFunction : Function {
@@ -29,10 +29,11 @@ class ReplaceFunction : Function {
             .getNearbyEntities(origin.clone().add(0.5, 0.0, 0.5), 0.2, 0.2, 0.2)
         var rot: Rotation? = null
         for (entity in entities) {
-            if (entity.type != EntityType.ITEM_FRAME) continue
-            val itemFrame = entity as ItemFrame
-            if (Utils.itemsMatch(itemFrame.item, furniture.blockItem)) {
-                rot = itemFrame.rotation
+            if (entity.type != EntityType.ITEM_DISPLAY) continue
+            val itemDisplay = entity as ItemDisplay
+            if (Utils.itemsMatch(itemDisplay.itemStack, furniture.blockItem)) {
+                // TODO fix all that rotation stuff
+                rot = itemDisplay.rotation
                 break
             }
         }

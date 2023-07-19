@@ -5,7 +5,7 @@ import com.mira.furnitureengine.furniture.core.Furniture
 import com.mira.furnitureengine.utils.Utils
 import org.bukkit.*
 import org.bukkit.entity.EntityType
-import org.bukkit.entity.ItemFrame
+import org.bukkit.entity.ItemDisplay
 
 class FurnitureManager private constructor() {
     private val furniture: MutableList<Furniture> = ArrayList()
@@ -78,20 +78,20 @@ class FurnitureManager private constructor() {
         // Get the middle of the block, so that it's as accurate as possible
         location = location.clone().add(0.5, 0.0, 0.5)
 
-        // get all entities at the location, and check if one of them is an item frame
+        // get all entities at the location, and check if one of them is an item display
         val entities = location.world!!
             .getNearbyEntities(location, 0.2, 0.2, 0.2)
         for (entity in entities) {
-            if (entity.type != EntityType.ITEM_FRAME) continue
-            val itemFrame = entity as ItemFrame
+            if (entity.type != EntityType.ITEM_DISPLAY) continue
+            val itemDisplay = entity as ItemDisplay
 
             // Check if the item is a furniture item
             for (furniture in furniture) {
-                if (Utils.itemsMatch(itemFrame.item, furniture.blockItem)) return furniture
+                if (Utils.itemsMatch(itemDisplay.itemStack, furniture.blockItem)) return furniture
 
                 // Additionally, check if any of the submodels match
                 for (subModel in furniture.subModels) {
-                    if (Utils.itemsMatch(itemFrame.item, furniture.generateSubModelItem(subModel))) return furniture
+                    if (Utils.itemsMatch(itemDisplay.itemStack, furniture.generateSubModelItem(subModel))) return furniture
                 }
             }
         }

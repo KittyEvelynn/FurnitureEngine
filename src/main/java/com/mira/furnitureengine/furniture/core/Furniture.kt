@@ -10,7 +10,7 @@ import com.mira.furnitureengine.utils.FormatUtils
 import com.mira.furnitureengine.utils.Utils
 import org.bukkit.*
 import org.bukkit.block.BlockFace
-import org.bukkit.entity.ItemFrame
+import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.Player
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockPlaceEvent
@@ -342,27 +342,22 @@ class Furniture(/* Basic Furniture Data */
 
         // Set a barrier block at the location
         location.block.type = Material.AIR
-        // Spawn an item frame at the location
-        val itemFrame = location.world!!.spawn<ItemFrame>(location, ItemFrame::class.java) { frame: ItemFrame ->
-            // Set the item frame's item to the generated item
+        // Spawn an item display at the location
+        val itemDisplay = location.world!!.spawn<ItemDisplay>(location, ItemDisplay::class.java) { display: ItemDisplay ->
+            // Set the item display's item to the generated item
             if (!inheritColor) {
-                frame.setItem(blockItem)
+                display.itemStack = blockItem!!
             } else {
                 val item = blockItem!!.clone()
                 val potionMeta = item.itemMeta as PotionMeta?
-                if (potionMeta != null) {
+                potionMeta?.let{
                     potionMeta.color = color
                     item.setItemMeta(potionMeta)
                 }
-                frame.setItem(item)
+                display.itemStack = item
             }
-            frame.isSilent = true
-            frame.isVisible = false
-            frame.isFixed = true
-            frame.isInvulnerable = true
-            frame.rotation = rotation
-            frame.setFacingDirection(BlockFace.UP)
-            frame.persistentDataContainer.set(
+            // TODO set rotation of the itemdisplay here
+            display.persistentDataContainer.set(
                 NamespacedKey(
                     JavaPlugin.getPlugin(
                         FurnitureEngine::class.java
@@ -376,24 +371,19 @@ class Furniture(/* Basic Furniture Data */
         for (subModel in subModels) {
             val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
             subModelLocation.block.type = Material.AIR
-            val subModelItemFrame = subModelLocation.world!!
-                .spawn<ItemFrame>(subModelLocation, ItemFrame::class.java) { frame: ItemFrame ->
-                    if (!inheritColor) frame.setItem(generateSubModelItem(subModel)) else {
+            val subModelItemDisplay = subModelLocation.world!!
+                .spawn<ItemDisplay>(subModelLocation, ItemDisplay::class.java) { display: ItemDisplay ->
+                    if (!inheritColor) display.itemStack = generateSubModelItem(subModel) else {
                         val item = generateSubModelItem(subModel).clone()
                         val potionMeta = item.itemMeta as PotionMeta?
-                        if (potionMeta != null) {
+                        potionMeta?.let{
                             potionMeta.color = color
                             item.setItemMeta(potionMeta)
                         }
-                        frame.setItem(item)
+                        display.itemStack = item
                     }
-                    frame.isSilent = true
-                    frame.isVisible = false
-                    frame.isFixed = true
-                    frame.isInvulnerable = true
-                    frame.rotation = rotation
-                    frame.setFacingDirection(BlockFace.UP)
-                    frame.persistentDataContainer.set(
+                    // TODO set rotation of the itemdisplay here
+                    display.persistentDataContainer.set(
                         NamespacedKey(
                             JavaPlugin.getPlugin(
                                 FurnitureEngine::class.java
@@ -401,6 +391,7 @@ class Furniture(/* Basic Furniture Data */
                         ), PersistentDataType.INTEGER, Utils.furnitureFormatVersion
                     )
                 }
+            // TODO the code above is practicaly copy pasted lets look at if we can simplify it later
             subModelLocation.block.type = Material.BARRIER
         }
 
@@ -426,8 +417,7 @@ class Furniture(/* Basic Furniture Data */
     }
 
     fun spawn(location: Location, rotation: Rotation, color: Color?): Boolean {
-        val inheritColor: Boolean
-        inheritColor = generatedItem!!.type == Material.TIPPED_ARROW && color != null
+        val inheritColor: Boolean = generatedItem!!.type == Material.TIPPED_ARROW && color != null
         for (subModel in subModels) {
             val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
             if (Utils.isSolid(subModelLocation.block)) {
@@ -445,11 +435,11 @@ class Furniture(/* Basic Furniture Data */
 
         // Set a barrier block at the location
         location.block.type = Material.AIR
-        // Spawn an item frame at the location
-        val itemFrame = location.world!!.spawn<ItemFrame>(location, ItemFrame::class.java) { frame: ItemFrame ->
-            // Set the item frame's item to the generated item
+        // Spawn an item display at the location
+        val itemDisplay = location.world!!.spawn<ItemDisplay>(location, ItemDisplay::class.java) { display: ItemDisplay ->
+            // Set the item display's item to the generated item
             if (!inheritColor) {
-                frame.setItem(blockItem)
+                display.itemStack = blockItem
             } else {
                 val item = blockItem!!.clone()
                 val potionMeta = item.itemMeta as PotionMeta?
@@ -457,15 +447,10 @@ class Furniture(/* Basic Furniture Data */
                     potionMeta.color = color
                     item.setItemMeta(potionMeta)
                 }
-                frame.setItem(item)
+                display.itemStack = blockItem
             }
-            frame.isSilent = true
-            frame.isVisible = false
-            frame.isFixed = true
-            frame.isInvulnerable = true
-            frame.rotation = rotation
-            frame.setFacingDirection(BlockFace.UP)
-            frame.persistentDataContainer.set(
+            // TODO everything to do with spawning models need to be put in a function
+            display.persistentDataContainer.set(
                 NamespacedKey(
                     JavaPlugin.getPlugin(
                         FurnitureEngine::class.java
@@ -479,24 +464,18 @@ class Furniture(/* Basic Furniture Data */
         for (subModel in subModels) {
             val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
             subModelLocation.block.type = Material.AIR
-            val subModelItemFrame = subModelLocation.world!!
-                .spawn<ItemFrame>(subModelLocation, ItemFrame::class.java) { frame: ItemFrame ->
-                    if (!inheritColor) frame.setItem(generateSubModelItem(subModel)) else {
+            val subModelItemDisplay = subModelLocation.world!!
+                .spawn<ItemDisplay>(subModelLocation, ItemDisplay::class.java) { display: ItemDisplay ->
+                    if (!inheritColor) display.itemStack = generateSubModelItem(subModel) else {
                         val item = generateSubModelItem(subModel).clone()
                         val potionMeta = item.itemMeta as PotionMeta?
                         if (potionMeta != null) {
                             potionMeta.color = color
                             item.setItemMeta(potionMeta)
                         }
-                        frame.setItem(item)
+                        display.itemStack = item
                     }
-                    frame.isSilent = true
-                    frame.isVisible = false
-                    frame.isFixed = true
-                    frame.isInvulnerable = true
-                    frame.rotation = rotation
-                    frame.setFacingDirection(BlockFace.UP)
-                    frame.persistentDataContainer.set(
+                    display.persistentDataContainer.set(
                         NamespacedKey(
                             JavaPlugin.getPlugin(
                                 FurnitureEngine::class.java
@@ -525,10 +504,10 @@ class Furniture(/* Basic Furniture Data */
         var rot: Rotation? = null
         var inheritColor = false
         var color = Color.WHITE
-        // Destroy the initial item frame + block
+        // Destroy the initial item display + block
         for (entity in location.world!!
             .getNearbyEntities(location.add(0.5, 0.0, 0.5), 0.2, 0.2, 0.2)) {
-            if (entity is ItemFrame) {
+            if (entity is ItemDisplay) {
                 if (entity.getPersistentDataContainer().has<Int, Int>(
                         NamespacedKey(
                             JavaPlugin.getPlugin<FurnitureEngine>(
@@ -537,7 +516,7 @@ class Furniture(/* Basic Furniture Data */
                         ), PersistentDataType.INTEGER
                     )
                 ) {
-                    if (entity.item.type == Material.TIPPED_ARROW) {
+                    if (entity.itemStack!!.type == Material.TIPPED_ARROW) {
                         val potionMeta = entity.item.itemMeta as PotionMeta?
                         if (potionMeta != null) {
                             color = potionMeta.color
@@ -545,7 +524,7 @@ class Furniture(/* Basic Furniture Data */
                         }
                     }
                     entity.remove()
-                    rot = entity.rotation
+                    rot = entity.rotation//TODO fix this
                     location.block.type = Material.AIR
                     break
                 }
@@ -560,7 +539,7 @@ class Furniture(/* Basic Furniture Data */
             val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rot)
             for (entity in subModelLocation.world!!
                 .getNearbyEntities(subModelLocation, 0.2, 0.2, 0.2)) {
-                if (entity is ItemFrame) {
+                if (entity is ItemDisplay) {
                     if (entity.getPersistentDataContainer().has(
                             NamespacedKey(
                                 JavaPlugin.getPlugin(

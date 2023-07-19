@@ -3,6 +3,7 @@ package com.mira.furnitureengine.utils
 import com.mira.furnitureengine.furniture.core.Furniture
 import com.mira.furnitureengine.furniture.core.Furniture.RotSides
 import com.mira.furnitureengine.furniture.core.SubModel
+import de.tr7zw.nbtapi.NBT
 import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.Material
@@ -11,7 +12,7 @@ import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
-import org.bukkit.entity.ItemFrame
+import org.bukkit.entity.ItemDisplay
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.PotionMeta
 import org.bukkit.util.Vector
@@ -119,17 +120,18 @@ object Utils {
      * @return The relative location
      */
     fun getOriginLocation(input: Location?, furniture: Furniture): Location? {
-        // Check for item frames
+        // Check for item displays
         val entities = input!!.world!!
             .getNearbyEntities(input.clone().add(0.5, 0.0, 0.5), 0.1, 0.1, 0.1)
         for (entity in entities) {
-            if (entity is ItemFrame) {
+            if (entity is ItemDisplay) {
                 // Get the item and compare it to the furniture
-                if (itemsMatch(entity.item, furniture.blockItem)) {
+                if (itemsMatch(entity.itemStack, furniture.blockItem)) {
                     return input.clone()
                 } else {
                     for (subModel in furniture.subModels) {
-                        if (itemsMatch(entity.item, furniture.generateSubModelItem(subModel))) {
+                        if (itemsMatch(entity.itemStack, furniture.generateSubModelItem(subModel))) {
+                            // TODO make this work again
                             val rotation: Rotation = entity.rotation
                             val offset = subModel.offset.clone()
                             return when (rotation) {
@@ -225,10 +227,10 @@ object Utils {
     }
 
     fun entityObstructing(location: Location?): Boolean {
-        // Check if there is an entity obstructing the location (but item frames get ignored)
+        // Check if there is an entity obstructing the location (but item displays get ignored)
         for (entity in location!!.world!!
             .getNearbyEntities(location.add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5)) {
-            if (entity.type.isAlive && entity.type != EntityType.ITEM_FRAME) {
+            if (entity.type.isAlive && entity.type != EntityType.ITEM_DISPLAY) {
                 return true
             }
         }
@@ -282,10 +284,10 @@ object Utils {
         val entities = location!!.world!!
             .getNearbyEntities(location, 0.2, 0.2, 0.2)
         for (entity in entities) {
-            if (entity.type != EntityType.ITEM_FRAME) continue
-            val itemFrame = entity as ItemFrame
-            if (itemFrame.item.type == Material.TIPPED_ARROW) {
-                val potionMeta = itemFrame.item.itemMeta as PotionMeta?
+            if (entity.type != EntityType.ITEM_DISPLAY) continue
+            val itemDisplay = entity as ItemDisplay
+            if (itemDisplay.itemStack!!.type == Material.TIPPED_ARROW) {
+                val potionMeta = itemDisplay.itemStack!!.itemMeta as PotionMeta?
                 return if (potionMeta!!.hasColor()) {
                     potionMeta.color
                 } else null
