@@ -4,14 +4,7 @@ import org.bukkit.configuration.serialization.ConfigurationSerializable
 import org.bukkit.util.Vector
 
 // Submodel contains vector (offset) and custom model data (int)
-class SubModel(offset: Vector?, customModelData: Int) : ConfigurationSerializable {
-    val offset: Vector
-    val customModelData: Int
-
-    init {
-        this.offset = offset!!
-        this.customModelData = customModelData
-    }
+class SubModel(val offset: Vector, val customModelData: Int, val rotation: Int) : ConfigurationSerializable {
 
     override fun serialize(): Map<String, Any> {
         val map: MutableMap<String, Any> = HashMap()
@@ -29,7 +22,7 @@ class SubModel(offset: Vector?, customModelData: Int) : ConfigurationSerializabl
 
     companion object {
         fun deserialize(map: Map<String?, Any?>): SubModel {
-            return SubModel(map["offset"] as Vector?, map["model_data"] as Int)
+            return SubModel(map["offset"] as Vector, map["model_data"] as Int, map["rotation"] as Int)
         }
     }
 }

@@ -131,7 +131,7 @@ object Utils {
                 } else {
                     for (subModel in furniture.subModels) {
                         if (itemsMatch(entity.itemStack, furniture.generateSubModelItem(subModel))) {
-                            val rotation: Rotation = angleToRotation(entity.location.yaw)
+                            val rotation: Rotation = angleToRotation(entity.location.yaw-subModel.rotation)
                             val offset = subModel.offset.clone()
                             return when (rotation) {
                                 Rotation.CLOCKWISE -> {

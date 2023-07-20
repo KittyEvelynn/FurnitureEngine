@@ -100,8 +100,9 @@ class Furniture(/* Basic Furniture Data */
         try {
             for (obj in plugin!!.config.getList("Furniture.$id.submodels", ArrayList<Any>())!!) {
 
-                // Example format: {offset={x=1, y=0, z=0}, model_data=2}
+                // Example format: {offset={x=1, y=0, z=0}, model_data=2, rotation}
                 if (obj is Map<*, *>) {
+                    println(obj.toString())
                     var offset: Vector? = null
                     if (obj["offset"] is Map<*, *>) {
                         val offsetMap = obj["offset"] as Map<*, *>
@@ -112,9 +113,10 @@ class Furniture(/* Basic Furniture Data */
                         )
                     }
                     val modelData = if (obj["model_data"] is Number) obj["model_data"] as Int else 0
+                    val rotation = if (obj["rotation"] is Number) obj["rotation"] as Int else 0
                     require(!(offset == null || offset.lengthSquared() == 0.0)) { "Offset for a submodel of furniture $id is null or 0. This is not allowed." }
                     require(modelData != 0) { "Model data for a submodel of furniture $id is 0. This is not allowed." }
-                    subModels.add(SubModel(offset, modelData))
+                    subModels.add(SubModel(offset, modelData, rotation))
                 }
             }
         } catch (e: Exception) {
@@ -404,7 +406,7 @@ class Furniture(/* Basic Furniture Data */
                         display.itemStack = item
                     }
 
-                    display.setRotation(rotationSides!!.getSnappedAngle(player.location.yaw), 0f)
+                    display.setRotation(rotationSides!!.getSnappedAngle(player.location.yaw) + subModel.rotation, 0f)
 
                     display.persistentDataContainer.set(
                         NamespacedKey(
@@ -563,7 +565,7 @@ class Furniture(/* Basic Furniture Data */
         for (subModel in subModels) {
             val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rot)
             for (entity in subModelLocation.world!!
-                .getNearbyEntities(subModelLocation, 0.2, 0.2, 0.2)) {
+                .getNearbyEntities(subModelLocation, 0.1, 0.1, 0.1)) {
                 if (entity is ItemDisplay) {
                     if (entity.getPersistentDataContainer().has(
                             NamespacedKey(
