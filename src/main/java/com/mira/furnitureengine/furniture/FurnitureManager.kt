@@ -73,7 +73,7 @@ class FurnitureManager private constructor() {
     fun isFurniture(location: Location?): Furniture? {
         // Check if there is a barrier block at the location
         var location = location
-        if (location!!.block.type != Material.BARRIER) return null
+        if (location!!.block.type != Material.BARRIER && location.block.type != Material.TRIPWIRE) return null
         // Get the middle of the block, so that it's as accurate as possible
         location = location.clone().add(0.5, 0.5, 0.5)
 

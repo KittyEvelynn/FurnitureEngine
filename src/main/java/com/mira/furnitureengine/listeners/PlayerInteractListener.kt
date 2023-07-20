@@ -95,10 +95,11 @@ class PlayerInteractListener : Listener {
                         Utils.getOriginLocation(event.clickedBlock!!.location, furniture)
                     )
                 }
+
                 val origin = Utils.getOriginLocation(
                     event.clickedBlock!!.location, furniture
                 )
-                if (origin != null) {
+                origin?.let{
                     furniture.breakFurniture(player, origin)
                 }
             }

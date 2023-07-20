@@ -16,7 +16,7 @@ class MoveFunction : Function {
         val position: Position = try {
             Position.valueOf(pos.uppercase(Locale.getDefault()))
         } catch (e: IllegalArgumentException) {
-            FurnitureEngine.instance!!.getLogger().warning("Invalid position in MOVE function: $pos")
+            FurnitureEngine.instance!!.logger.warning("Invalid position in MOVE function: $pos")
             return
         }
     }

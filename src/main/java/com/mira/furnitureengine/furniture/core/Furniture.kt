@@ -65,6 +65,7 @@ class Furniture(/* Basic Furniture Data */
     var lore: List<String?>? = null
     val modelData: Int
     val rotationSides: RotSides?
+    val collision: Boolean
 
     /* Advanced Furniture Data */
     val subModels: MutableList<SubModel> = ArrayList()
@@ -96,13 +97,14 @@ class Furniture(/* Basic Furniture Data */
 
         rotationSides = RotSides.valueOf(plugin!!.config.getInt("Furniture.$id.rotation"))
 
+        collision = plugin!!.config.getBoolean("Furniture.$id.collision", true)
+
         // Get all submodels (object list)
         try {
             for (obj in plugin!!.config.getList("Furniture.$id.submodels", ArrayList<Any>())!!) {
 
                 // Example format: {offset={x=1, y=0, z=0}, model_data=2, rotation}
                 if (obj is Map<*, *>) {
-                    println(obj.toString())
                     var offset: Vector? = null
                     if (obj["offset"] is Map<*, *>) {
                         val offsetMap = obj["offset"] as Map<*, *>
@@ -388,7 +390,7 @@ class Furniture(/* Basic Furniture Data */
                 ), PersistentDataType.INTEGER, Utils.furnitureFormatVersion
             )
         }
-        location.block.type = Material.BARRIER
+        location.block.type = if(collision) Material.BARRIER else Material.TRIPWIRE
 
         // Now go thru all submodels and place them
         for (subModel in subModels) {
@@ -417,7 +419,7 @@ class Furniture(/* Basic Furniture Data */
                     )
                 }
             // TODO the code above is practicaly copy pasted lets look at if we can simplify it later
-            subModelLocation.block.type = Material.BARRIER
+            subModelLocation.block.type = if(collision) Material.BARRIER else Material.TRIPWIRE
         }
 
         // play placing animation & remove item from hand (if not in creative)
@@ -459,7 +461,7 @@ class Furniture(/* Basic Furniture Data */
         }
 
         // Set a barrier block at the location
-        location.block.type = Material.AIR
+        location.block.type = Material.AIR //TODO this was set to air for some reason we should test this
         // Spawn an item display at the location
         val itemDisplay = location.world!!.spawn(location, ItemDisplay::class.java) { display: ItemDisplay ->
             // Set the item display's item to the generated item
@@ -485,7 +487,7 @@ class Furniture(/* Basic Furniture Data */
                 ), PersistentDataType.INTEGER, Utils.furnitureFormatVersion
             )
         }
-        location.block.type = Material.BARRIER
+        location.block.type = if(collision) Material.BARRIER else Material.TRIPWIRE//TODO we set the block 2x for some reason?
 
         // Now go thru all submodels and place them
         for (subModel in subModels) {
@@ -510,7 +512,7 @@ class Furniture(/* Basic Furniture Data */
                         ), PersistentDataType.INTEGER, Utils.furnitureFormatVersion
                     )
                 }
-            subModelLocation.block.type = Material.BARRIER
+            subModelLocation.block.type = if(collision) Material.BARRIER else Material.TRIPWIRE
         }
         return true
     }
