@@ -1,4 +1,3 @@
-make blocks unplaceable when theres no space
 make it destroy trivial blocks if something is blocking it
 submodels rotation
 ONLY IF IM FEELING REALY FRISKY: add animations / particle effects

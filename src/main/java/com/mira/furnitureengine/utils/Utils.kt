@@ -38,7 +38,7 @@ object Utils {
 
     fun calculatePlacingLocation(clickedBlock: Block?, clickedFace: BlockFace?): Location {
         val location = clickedBlock!!.location
-        if (!isSolid(clickedBlock)) return location
+        if (!isReplaceable(clickedBlock)) return location
         when (clickedFace) {
             BlockFace.UP -> {
                 location.add(0.0, 1.0, 0.0)
@@ -77,11 +77,11 @@ object Utils {
      * @return Whether the furniture can be placed or not
      */
     fun hasSpace(location: Location?, rotation: Rotation?, furniture: Furniture): Boolean {
-        if (isSolid(location!!.block)) return false
+        if (isReplaceable(location!!.block)) return false
         if (furniture.subModels.size == 0) return true
         for (subModel in furniture.subModels) {
             val subModelLocation = getRelativeLocation(location, subModel.offset, rotation)
-            if (isSolid(subModelLocation.block)) return false
+            if (isReplaceable(subModelLocation.block)) return false
         }
         return true
     }
@@ -246,9 +246,8 @@ object Utils {
         Apparently the Material.isSolid() method is not exactly what I need... For example flowers are considered non-solid,
         but you shouldn't be able to place furniture on them. So I made my own method.
      */
-    fun isSolid(block: Block?): Boolean {
+    fun isReplaceable(block: Block?): Boolean {
         return if (block!!.type.isSolid) true else {
-            if (block.type.blastResistance > 0.2) return true
             if (block.type.name.contains("SAPLING")) return true
             if (block.type.name.contains("FLOWER") || block.type.name.contains("TULIP")) return true
             if (block.type.name.contains("CARPET")) return true

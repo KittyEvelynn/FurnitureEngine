@@ -333,11 +333,11 @@ class Furniture(/* Basic Furniture Data */
         }
         for (subModel in subModels) {
             val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotationSide)
-            if (Utils.isSolid(subModelLocation.block) || Utils.entityObstructing(subModelLocation)) {
+            if (Utils.isReplaceable(subModelLocation.block) || Utils.entityObstructing(subModelLocation)) {
                 return false
             }
         }
-        if (Utils.isSolid(location.block) || Utils.entityObstructing(location)) {
+        if (Utils.isReplaceable(location.block) || Utils.entityObstructing(location)) {
             return false
         }
         val blockPlaceEvent = BlockPlaceEvent(
@@ -443,11 +443,11 @@ class Furniture(/* Basic Furniture Data */
         val inheritColor: Boolean = generatedItem!!.type == Material.TIPPED_ARROW && color != null
         for (subModel in subModels) {
             val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotationSide)
-            if (Utils.isSolid(subModelLocation.block)) {
+            if (Utils.isReplaceable(subModelLocation.block)) {
                 return false
             }
         }
-        if (Utils.isSolid(location.block)) {
+        if (Utils.isReplaceable(location.block)) {
             return false
         }
         val event = FurniturePlaceEvent(this, null, location)
