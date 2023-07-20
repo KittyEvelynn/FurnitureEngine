@@ -562,8 +562,6 @@ class Furniture(/* Basic Furniture Data */
         // Now time to destroy all submodels
         for (subModel in subModels) {
             val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rot)
-            println("getting submodels ${Utils.getRelativeLocation(location, subModel.offset, rot).toVector()} , $rot , ${subModelLocation.world!!
-                .getNearbyEntities(subModelLocation, 0.2, 0.2, 0.2)}")
             for (entity in subModelLocation.world!!
                 .getNearbyEntities(subModelLocation, 0.2, 0.2, 0.2)) {
                 if (entity is ItemDisplay) {
@@ -576,7 +574,6 @@ class Furniture(/* Basic Furniture Data */
                         )
                     ) {
                         entity.remove()
-                        print("destroyed submodel")
                         subModelLocation.block.type = Material.AIR
                         break
                     }

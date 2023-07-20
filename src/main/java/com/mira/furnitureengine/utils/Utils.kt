@@ -258,7 +258,6 @@ object Utils {
                 Material.TORCH, Material.SOUL_TORCH, Material.LANTERN, Material.SOUL_LANTERN, Material.REDSTONE_WIRE, Material.REDSTONE, Material.REDSTONE_TORCH, Material.REDSTONE_WALL_TORCH, Material.NETHER_PORTAL, Material.END_PORTAL, Material.BEETROOTS, Material.CARROTS, Material.POTATOES, Material.WHEAT, Material.SWEET_BERRY_BUSH, Material.SCAFFOLDING, Material.PUMPKIN_STEM, Material.MELON_STEM, Material.NETHER_WART, Material.FLOWER_POT, Material.END_ROD, Material.KELP, Material.DANDELION, Material.POPPY, Material.BLUE_ORCHID, Material.ALLIUM, Material.AZURE_BLUET, Material.OXEYE_DAISY, Material.CORNFLOWER, Material.LILY_OF_THE_VALLEY, Material.WITHER_ROSE, Material.COBWEB -> {
                     return true
                 }
-
                 else -> {}
             }
             false

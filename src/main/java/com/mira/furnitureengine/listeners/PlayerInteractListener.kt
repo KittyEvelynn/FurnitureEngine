@@ -28,7 +28,7 @@ class PlayerInteractListener : Listener {
                 // Check if the block is a furniture block
                 val furniture: Furniture? =
                     FurnitureManager.instance!!.isFurniture(event.clickedBlock!!.location)
-                if (furniture != null) {
+                furniture?.let {
                     if (furniture.callFunction(
                             FunctionType.RIGHT_CLICK,
                             event.clickedBlock!!.location,
@@ -64,11 +64,11 @@ class PlayerInteractListener : Listener {
             if (item.hasItemMeta() && item.itemMeta!!.hasCustomModelData()) {
                 for (furniture in FurnitureManager.instance!!.getFurniture()) {
                     if (Utils.itemsMatch(item, furniture.generatedItem)) {
-                        furniture.place(
+                        if (!furniture.place(
                             player,
                             hand,
                             Utils.calculatePlacingLocation(event.clickedBlock, event.blockFace)
-                        )
+                        )) event.isCancelled = true
                         return
                     }
                 }
