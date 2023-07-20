@@ -27,7 +27,7 @@ class ReplaceFunction : Function {
 
         // rotation
         val entities = origin!!.world!!
-            .getNearbyEntities(origin.clone().add(0.5, 0.0, 0.5), 0.2, 0.2, 0.2)
+            .getNearbyEntities(origin.clone().add(0.5, 0.5, 0.5), 0.1, 0.1, 0.1)
         var rot: Rotation? = null
         for (entity in entities) {
             if (entity.type != EntityType.ITEM_DISPLAY) continue
