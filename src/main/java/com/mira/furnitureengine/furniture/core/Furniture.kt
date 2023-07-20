@@ -8,6 +8,8 @@ import com.mira.furnitureengine.furniture.functions.FunctionManager
 import com.mira.furnitureengine.furniture.functions.FunctionType
 import com.mira.furnitureengine.utils.FormatUtils
 import com.mira.furnitureengine.utils.Utils
+import com.mira.furnitureengine.utils.Utils.angleToRotation
+import com.mira.furnitureengine.utils.Utils.rotationToAngle
 import org.bukkit.*
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.ItemDisplay
@@ -22,17 +24,32 @@ import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.util.Vector
 import java.util.*
+import kotlin.math.round
 
+@OptIn(ExperimentalStdlibApi::class)
 class Furniture(/* Basic Furniture Data */
                 val id: String
 ) {
     enum class RotSides {
         FOUR_SIDED,
-        EIGHT_SIDED;
+        EIGHT_SIDED,
+        UNLIMITED;
 
         companion object {
             fun valueOf(rotation: Int): RotSides? {
-                return if (rotation == 4) FOUR_SIDED else if (rotation == 8) EIGHT_SIDED else null
+                return when (rotation) {
+                    4 -> FOUR_SIDED
+                    8 -> EIGHT_SIDED
+                    16 -> UNLIMITED
+                    else -> null
+                }
+            }
+        }
+        fun getSnappedAngle(angle: Float): Float{
+            return when(this){
+                FOUR_SIDED -> round(angle/90)*90
+                EIGHT_SIDED -> round(angle/45)*45
+                UNLIMITED -> angle
             }
         }
     }
@@ -47,7 +64,7 @@ class Furniture(/* Basic Furniture Data */
     var displayName: String? = null
     var lore: List<String?>? = null
     val modelData: Int
-    val rotation: RotSides?
+    val rotationSides: RotSides?
 
     /* Advanced Furniture Data */
     val subModels: MutableList<SubModel> = ArrayList()
@@ -64,7 +81,7 @@ class Furniture(/* Basic Furniture Data */
             null
         }
         val tempLore = plugin!!.config.getStringList("Furniture.$id.lore")
-        lore = if (!tempLore.isEmpty()) {
+        lore = if (tempLore.isNotEmpty()) {
             FormatUtils.format(tempLore)
         } else {
             null
@@ -76,11 +93,13 @@ class Furniture(/* Basic Furniture Data */
             plugin!!.logger.warning("Model data for furniture $id is 0. This is not allowed.")
             throw IllegalArgumentException("Model data for furniture $id is 0. This is not allowed.")
         }
-        rotation = RotSides.valueOf(plugin!!.config.getInt("Furniture.$id.rotation"))
+
+        rotationSides = RotSides.valueOf(plugin!!.config.getInt("Furniture.$id.rotation"))
 
         // Get all submodels (object list)
         try {
             for (obj in plugin!!.config.getList("Furniture.$id.submodels", ArrayList<Any>())!!) {
+
                 // Example format: {offset={x=1, y=0, z=0}, model_data=2}
                 if (obj is Map<*, *>) {
                     var offset: Vector? = null
@@ -102,9 +121,9 @@ class Furniture(/* Basic Furniture Data */
             plugin!!.logger.warning("Failed to load submodels for furniture " + id + ". Error: " + e.message)
             throw IllegalArgumentException("Failed to load submodels for furniture " + id + ". Error: " + e.message)
         }
-        if (!subModels.isEmpty()) {
+        if (subModels.isNotEmpty()) {
             if (!Utils.onlyVertical(subModels)) {
-                require(rotation != RotSides.EIGHT_SIDED) { "Furniture $id has 8 sided rotation, but has horizontal submodels. This is not allowed." }
+                require(rotationSides == RotSides.FOUR_SIDED) { "Furniture $id has 8 sided rotation, but has horizontal submodels. This is not allowed." }
             }
         }
 
@@ -210,7 +229,7 @@ class Furniture(/* Basic Furniture Data */
                     if (dropDisplayName != null) {
                         dropMeta.setDisplayName(FormatUtils.format(dropDisplayName))
                     }
-                    if (!dropLore.isEmpty()) {
+                    if (dropLore.isNotEmpty()) {
                         dropMeta.lore = FormatUtils.format(dropLore)
                     }
                     if (dropModelData != 0) {
@@ -251,7 +270,7 @@ class Furniture(/* Basic Furniture Data */
                 if (blockDisplayName != null) {
                     blockMeta.setDisplayName(FormatUtils.format(blockDisplayName))
                 }
-                if (!blockLore.isEmpty()) {
+                if (blockLore.isNotEmpty()) {
                     blockMeta.lore = FormatUtils.format(blockLore)
                 }
                 if (blockModelData != 0) {
@@ -285,7 +304,7 @@ class Furniture(/* Basic Furniture Data */
 
     fun place(player: Player, hand: EquipmentSlot, location: Location): Boolean {
         // Go thru all submodels and check if there is space for them
-        val rotation = Utils.getRotation(player, rotation)
+        val rotationSide = Utils.getRotation(player, rotationSides)
 
         // Check if the item is a tipped arrow
         val inheritColor: Boolean
@@ -313,7 +332,7 @@ class Furniture(/* Basic Furniture Data */
             inheritColor = false
         }
         for (subModel in subModels) {
-            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
+            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotationSide)
             if (Utils.isSolid(subModelLocation.block) || Utils.entityObstructing(subModelLocation)) {
                 return false
             }
@@ -343,7 +362,7 @@ class Furniture(/* Basic Furniture Data */
         // Set a barrier block at the location
         location.block.type = Material.AIR
         // Spawn an item display at the location
-        val itemDisplay = location.world!!.spawn<ItemDisplay>(location, ItemDisplay::class.java) { display: ItemDisplay ->
+        val itemDisplay = location.world!!.spawn(location, ItemDisplay::class.java) { display: ItemDisplay ->
             // Set the item display's item to the generated item
             if (!inheritColor) {
                 display.itemStack = blockItem!!
@@ -356,7 +375,9 @@ class Furniture(/* Basic Furniture Data */
                 }
                 display.itemStack = item
             }
-            // TODO set rotation of the itemdisplay here
+
+            display.setRotation(rotationSides!!.getSnappedAngle(player.location.yaw), 0f)
+
             display.persistentDataContainer.set(
                 NamespacedKey(
                     JavaPlugin.getPlugin(
@@ -369,10 +390,10 @@ class Furniture(/* Basic Furniture Data */
 
         // Now go thru all submodels and place them
         for (subModel in subModels) {
-            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
+            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotationSide)
             subModelLocation.block.type = Material.AIR
             val subModelItemDisplay = subModelLocation.world!!
-                .spawn<ItemDisplay>(subModelLocation, ItemDisplay::class.java) { display: ItemDisplay ->
+                .spawn(subModelLocation, ItemDisplay::class.java) { display: ItemDisplay ->
                     if (!inheritColor) display.itemStack = generateSubModelItem(subModel) else {
                         val item = generateSubModelItem(subModel).clone()
                         val potionMeta = item.itemMeta as PotionMeta?
@@ -382,7 +403,9 @@ class Furniture(/* Basic Furniture Data */
                         }
                         display.itemStack = item
                     }
-                    // TODO set rotation of the itemdisplay here
+
+                    display.setRotation(rotationSides!!.getSnappedAngle(player.location.yaw), 0f)
+
                     display.persistentDataContainer.set(
                         NamespacedKey(
                             JavaPlugin.getPlugin(
@@ -416,10 +439,10 @@ class Furniture(/* Basic Furniture Data */
         return true
     }
 
-    fun spawn(location: Location, rotation: Rotation, color: Color?): Boolean {
+    fun spawn(location: Location, rotationSide: Rotation, color: Color?): Boolean {
         val inheritColor: Boolean = generatedItem!!.type == Material.TIPPED_ARROW && color != null
         for (subModel in subModels) {
-            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
+            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotationSide)
             if (Utils.isSolid(subModelLocation.block)) {
                 return false
             }
@@ -436,19 +459,21 @@ class Furniture(/* Basic Furniture Data */
         // Set a barrier block at the location
         location.block.type = Material.AIR
         // Spawn an item display at the location
-        val itemDisplay = location.world!!.spawn<ItemDisplay>(location, ItemDisplay::class.java) { display: ItemDisplay ->
+        val itemDisplay = location.world!!.spawn(location, ItemDisplay::class.java) { display: ItemDisplay ->
             // Set the item display's item to the generated item
             if (!inheritColor) {
                 display.itemStack = blockItem
             } else {
                 val item = blockItem!!.clone()
                 val potionMeta = item.itemMeta as PotionMeta?
-                if (potionMeta != null) {
+                potionMeta?.let {
                     potionMeta.color = color
                     item.setItemMeta(potionMeta)
                 }
                 display.itemStack = blockItem
             }
+
+            display.location.yaw = rotationSides!!.getSnappedAngle(rotationToAngle(rotationSide))
             // TODO everything to do with spawning models need to be put in a function
             display.persistentDataContainer.set(
                 NamespacedKey(
@@ -462,10 +487,10 @@ class Furniture(/* Basic Furniture Data */
 
         // Now go thru all submodels and place them
         for (subModel in subModels) {
-            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotation)
+            val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rotationSide)
             subModelLocation.block.type = Material.AIR
             val subModelItemDisplay = subModelLocation.world!!
-                .spawn<ItemDisplay>(subModelLocation, ItemDisplay::class.java) { display: ItemDisplay ->
+                .spawn(subModelLocation, ItemDisplay::class.java) { display: ItemDisplay ->
                     if (!inheritColor) display.itemStack = generateSubModelItem(subModel) else {
                         val item = generateSubModelItem(subModel).clone()
                         val potionMeta = item.itemMeta as PotionMeta?
@@ -489,7 +514,7 @@ class Furniture(/* Basic Furniture Data */
     }
 
     fun breakFurniture(player: Player?, location: Location): Boolean {
-        if (player != null) {
+        player?.let {
             val blockBreakEvent = BlockBreakEvent(location.block, player)
             plugin!!.server.pluginManager.callEvent(blockBreakEvent)
             if (blockBreakEvent.isCancelled) {
@@ -506,9 +531,9 @@ class Furniture(/* Basic Furniture Data */
         var color = Color.WHITE
         // Destroy the initial item display + block
         for (entity in location.world!!
-            .getNearbyEntities(location.add(0.5, 0.0, 0.5), 0.2, 0.2, 0.2)) {
+            .getNearbyEntities(location.add(0.5, 0.5, 0.5), 0.1, 0.1, 0.1)) {
             if (entity is ItemDisplay) {
-                if (entity.getPersistentDataContainer().has<Int, Int>(
+                if (entity.getPersistentDataContainer().has(
                         NamespacedKey(
                             JavaPlugin.getPlugin<FurnitureEngine>(
                                 FurnitureEngine::class.java
@@ -517,26 +542,28 @@ class Furniture(/* Basic Furniture Data */
                     )
                 ) {
                     if (entity.itemStack!!.type == Material.TIPPED_ARROW) {
-                        val potionMeta = entity.item.itemMeta as PotionMeta?
+                        val potionMeta = entity.itemStack!!.itemMeta as PotionMeta?
                         if (potionMeta != null) {
                             color = potionMeta.color
                             inheritColor = true
                         }
                     }
+                    rot = angleToRotation(entity.location.yaw)
                     entity.remove()
-                    rot = entity.rotation//TODO fix this
                     location.block.type = Material.AIR
                     break
                 }
             }
         }
-        if (rot == null) {
+        if(rot==null){
             return false
         }
 
         // Now time to destroy all submodels
         for (subModel in subModels) {
             val subModelLocation = Utils.getRelativeLocation(location, subModel.offset, rot)
+            println("getting submodels ${Utils.getRelativeLocation(location, subModel.offset, rot).toVector()} , $rot , ${subModelLocation.world!!
+                .getNearbyEntities(subModelLocation, 0.2, 0.2, 0.2)}")
             for (entity in subModelLocation.world!!
                 .getNearbyEntities(subModelLocation, 0.2, 0.2, 0.2)) {
                 if (entity is ItemDisplay) {
@@ -549,13 +576,14 @@ class Furniture(/* Basic Furniture Data */
                         )
                     ) {
                         entity.remove()
+                        print("destroyed submodel")
                         subModelLocation.block.type = Material.AIR
                         break
                     }
                 }
             }
         }
-        if (player != null) {
+        player?.let {
             callFunction(
                 FunctionType.BREAK,
                 location,

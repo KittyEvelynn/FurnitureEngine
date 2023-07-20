@@ -74,13 +74,13 @@ class FurnitureManager private constructor() {
         // Check if there is a barrier block at the location
         var location = location
         if (location!!.block.type != Material.BARRIER) return null
-
         // Get the middle of the block, so that it's as accurate as possible
-        location = location.clone().add(0.5, 0.0, 0.5)
+        location = location.clone().add(0.5, 0.5, 0.5)
 
         // get all entities at the location, and check if one of them is an item display
+
         val entities = location.world!!
-            .getNearbyEntities(location, 0.2, 0.2, 0.2)
+            .getNearbyEntities(location, 0.1, 0.1, 0.1)
         for (entity in entities) {
             if (entity.type != EntityType.ITEM_DISPLAY) continue
             val itemDisplay = entity as ItemDisplay

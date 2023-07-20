@@ -3,7 +3,6 @@ package com.mira.furnitureengine.utils
 import com.mira.furnitureengine.furniture.core.Furniture
 import com.mira.furnitureengine.furniture.core.Furniture.RotSides
 import com.mira.furnitureengine.furniture.core.SubModel
-import de.tr7zw.nbtapi.NBT
 import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.Material
@@ -16,6 +15,7 @@ import org.bukkit.entity.ItemDisplay
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.PotionMeta
 import org.bukkit.util.Vector
+import kotlin.math.round
 
 object Utils {
     const val furnitureFormatVersion = 3
@@ -122,7 +122,7 @@ object Utils {
     fun getOriginLocation(input: Location?, furniture: Furniture): Location? {
         // Check for item displays
         val entities = input!!.world!!
-            .getNearbyEntities(input.clone().add(0.5, 0.0, 0.5), 0.1, 0.1, 0.1)
+            .getNearbyEntities(input.clone().add(0.5, 0.5, 0.5), 0.1, 0.1, 0.1)
         for (entity in entities) {
             if (entity is ItemDisplay) {
                 // Get the item and compare it to the furniture
@@ -131,8 +131,7 @@ object Utils {
                 } else {
                     for (subModel in furniture.subModels) {
                         if (itemsMatch(entity.itemStack, furniture.generateSubModelItem(subModel))) {
-                            // TODO make this work again
-                            val rotation: Rotation = entity.rotation
+                            val rotation: Rotation = angleToRotation(entity.location.yaw)
                             val offset = subModel.offset.clone()
                             return when (rotation) {
                                 Rotation.CLOCKWISE -> {
@@ -159,6 +158,12 @@ object Utils {
         return null
     }
 
+    /**
+     * Used to get the rotation of an entity
+     * @param entity Entity to get it from
+     * @param rotSides How many sides the entity has
+     * @return The rotation according to the rotation enum
+     */
     fun getRotation(entity: Entity, rotSides: RotSides?): Rotation {
         var y = entity.location.yaw
         if (y < 0) y += 360f
@@ -308,5 +313,33 @@ object Utils {
             }
         }
         return true
+    }
+
+    fun rotationToAngle(rotation: Rotation): Float{
+        return when(rotation){
+            Rotation.NONE -> -180f
+            Rotation.CLOCKWISE_45 -> -135f
+            Rotation.CLOCKWISE -> -90f
+            Rotation.CLOCKWISE_135 -> -45f
+            Rotation.FLIPPED -> 0f
+            Rotation.FLIPPED_45 -> 45f
+            Rotation.COUNTER_CLOCKWISE -> 90f
+            Rotation.COUNTER_CLOCKWISE_45 -> 135f
+        }
+    }
+
+    fun angleToRotation(angle: Float): Rotation{
+        val i = (round((angle+180)/45)).toInt() % 8
+        return when(if (i<0) i + 45 else i){
+            0 -> Rotation.NONE
+            1 -> Rotation.CLOCKWISE_45
+            2 -> Rotation.CLOCKWISE
+            3 -> Rotation.CLOCKWISE_135
+            4 -> Rotation.FLIPPED
+            5 -> Rotation.FLIPPED_45
+            6 -> Rotation.COUNTER_CLOCKWISE
+            7 -> Rotation.COUNTER_CLOCKWISE_45
+            else -> Rotation.NONE // this should never happen
+        }
     }
 }

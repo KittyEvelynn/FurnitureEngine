@@ -6,6 +6,7 @@ import com.mira.furnitureengine.furniture.core.Furniture
 import com.mira.furnitureengine.furniture.functions.Function
 import com.mira.furnitureengine.furniture.functions.FunctionType
 import com.mira.furnitureengine.utils.Utils
+import com.mira.furnitureengine.utils.Utils.angleToRotation
 import org.bukkit.*
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.ItemDisplay
@@ -32,8 +33,7 @@ class ReplaceFunction : Function {
             if (entity.type != EntityType.ITEM_DISPLAY) continue
             val itemDisplay = entity as ItemDisplay
             if (Utils.itemsMatch(itemDisplay.itemStack, furniture.blockItem)) {
-                // TODO fix all that rotation stuff
-                rot = itemDisplay.rotation
+                rot = angleToRotation(itemDisplay.location.yaw)
                 break
             }
         }

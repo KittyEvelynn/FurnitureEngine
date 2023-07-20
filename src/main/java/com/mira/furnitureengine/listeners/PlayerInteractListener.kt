@@ -79,7 +79,7 @@ class PlayerInteractListener : Listener {
         if (event.action == Action.LEFT_CLICK_BLOCK) {
             val furniture: Furniture? =
                 FurnitureManager.instance!!.isFurniture(event.clickedBlock!!.location)
-            if (furniture != null) {
+            furniture?.let {
                 if (player.isSneaking) {
                     furniture.callFunction(
                         FunctionType.SHIFT_LEFT_CLICK,
